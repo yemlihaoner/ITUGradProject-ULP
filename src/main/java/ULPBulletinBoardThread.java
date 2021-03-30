@@ -26,6 +26,7 @@ public class ULPBulletinBoardThread extends Thread{
                 writer.println("Board is Connected");
 
                 text = reader.readLine();
+
                 System.out.println("Read:"+text);
                 if(text.contains("Request")){
                     date = new Date(System.currentTimeMillis());
@@ -34,16 +35,10 @@ public class ULPBulletinBoardThread extends Thread{
                     ));
                     System.out.println("Write[User]:"+text);
                     writer.println(text);
-                    text="Respond";
-                    System.out.println("Write[User]:"+text);
-                    logs.add(new Log(
-                            date,"type-a","status-a","Write[User]:"+text
-                    ));
-                    writer.println(text);
                 }else if(text.contains("Respond")){
                     date = new Date(System.currentTimeMillis());
                     logs.add(new Log(
-                            date,"type-a","status-a","Write[User]:"+text
+                            date,"type-a","status-a","Write[Provider]:"+text
                     ));
                     System.out.println("Write[Provider]:"+text);
                     writer.println(text);

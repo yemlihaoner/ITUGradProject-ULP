@@ -1,3 +1,10 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 
 public class Constants {
@@ -38,6 +45,33 @@ public class Constants {
             "</table>\n" +
             "</body>\n" +
             "</html>";
-    public static SimpleDateFormat dateFormatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
+    public static SimpleDateFormat dateFormatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss");
+
+    public static boolean checkBoard(String log_to_check) throws IOException, InterruptedException {
+        Thread.sleep(500);
+
+        URL url = new URL("http://localhost:8080");
+
+            URLConnection con = url.openConnection();
+            InputStream is =con.getInputStream();
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+
+            String line = null;
+
+            while ((line = br.readLine()) != null) {
+                if(line.contains("<td>")){
+                    line = line.replace("<td>","");
+                    var split_line = line.split("</td>");
+                    System.out.println(split_line[0]+split_line[1]+split_line[2]+split_line[3]);
+                    if(split_line[3].contains(log_to_check)){
+                        System.out.println(split_line[3] + " is Found!");
+                        return true;
+                    }
+                }
+            }
+            //System.exit(0);
+            return false;
+    }
 
 }

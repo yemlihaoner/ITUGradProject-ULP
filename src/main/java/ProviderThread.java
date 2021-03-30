@@ -25,18 +25,30 @@ public class ProviderThread extends Thread{
                 PrintWriter writerB = new PrintWriter(outputB,true);
                 BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
 
-                String bilboardRead = readerB.readLine();
-                System.out.println("Read[Board]: "+bilboardRead);
+                try{
+                    var isFound = Constants.checkBoard("Write[User]:Request");
+                    if(isFound){
+                        System.out.println("Read[Board]:Request");
+                    }
+                }catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 String requestB = "Respond";
                 writerB.println(requestB);
-                System.out.println("Write[Board]: "+requestB);
+                System.out.println("Write[Board]:"+requestB);
 
-                bilboardRead = readerB.readLine();
-                System.out.println("Read[Board]: "+bilboardRead);
+                try{
+                    var isFound = Constants.checkBoard("Write[Provider]:Respond");
+                    if(isFound){
+                        writerP.println(requestB);
+                        System.out.println("Signal[User]:Respond");
+                    }
+                }catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
-                writerP.println(requestB);
-                System.out.println("Write[Board]: "+requestB);
+
 
                 socketBoard.close();
             }

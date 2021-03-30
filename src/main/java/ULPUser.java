@@ -14,10 +14,14 @@ public class ULPUser {
 
             String requestB = "Request";
             writerB.println(requestB);
-
-            String boardRead = readerB.readLine();
-            boardRead = readerB.readLine();
-            System.out.println("Board: "+boardRead);
+            try{
+                var isFound = Constants.checkBoard("Write[User]:Request");
+                if(isFound){
+                    System.out.println("Board: Write Success");
+                }
+            }catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             try(Socket socketProvider = new Socket("localhost",6800)){
                 InputStream inputP = socketProvider.getInputStream();
@@ -29,13 +33,19 @@ public class ULPUser {
                 String requestP = "Request";
                 writerP.println(requestP);
 
-                System.out.println(requestP+" is sent to Provider.");
+                System.out.println("Signal[Provider]:Request");
 
                 String providerRead = readerP.readLine();
-                System.out.println("Provider: "+providerRead);
+                System.out.println("Read[Provider]:"+providerRead);
 
-                boardRead = readerB.readLine();
-                System.out.println("Board: "+boardRead);
+                try{
+                    var isFound = Constants.checkBoard("Write[Provider]:Respond");
+                    if(isFound){
+                        System.out.println("Board: Write Success");
+                    }
+                }catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 socketProvider.close();
             }
