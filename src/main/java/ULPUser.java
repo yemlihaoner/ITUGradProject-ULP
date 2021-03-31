@@ -9,8 +9,6 @@ public class ULPUser {
             InputStream inputB = socketBoard.getInputStream();
             OutputStream outputB = socketBoard.getOutputStream();
             PrintWriter writerB = new PrintWriter(outputB,true);
-            BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
-
 
             String requestB = "Request";
             writerB.println(requestB);
@@ -42,6 +40,23 @@ public class ULPUser {
                     var isFound = Constants.checkBoard("Write[Provider]:Respond");
                     if(isFound){
                         System.out.println("Board: Write Success");
+
+
+                        //User is using service
+                        Thread.sleep(1000);
+
+                        //User is using service
+
+
+                        requestB = "Testimonial";
+                        writerB.println(requestB);
+
+                        isFound = Constants.checkBoard("Write[User]:Testimonial");
+                        if(isFound){
+                            System.out.println("Board: Write Success");
+                            requestP = "Testimonial";
+                            writerP.println(requestP);
+                        }
                     }
                 }catch (InterruptedException e) {
                     e.printStackTrace();

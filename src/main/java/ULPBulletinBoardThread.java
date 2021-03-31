@@ -19,31 +19,38 @@ public class ULPBulletinBoardThread extends Thread{
                 InputStream input = socket.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
                 OutputStream output = socket.getOutputStream();
-                PrintWriter writer = new PrintWriter(output, true);
                 Date date;
                 String text = "start";
 
-                writer.println("Board is Connected");
-
                 text = reader.readLine();
-
                 System.out.println("Read:"+text);
+
+
                 if(text.contains("Request")){
                     date = new Date(System.currentTimeMillis());
+
                     logs.add(new Log(
                             date,"type-a","status-a","Write[User]:"+text
                     ));
                     System.out.println("Write[User]:"+text);
-                    writer.println(text);
+
+                    text = reader.readLine();
+                    System.out.println("Read:"+text);
+
+                    logs.add(new Log(
+                            date,"type-a","status-a","Write[User]:"+text
+                    ));
+                    System.out.println("Write[User]:"+text);
                 }else if(text.contains("Respond")){
                     date = new Date(System.currentTimeMillis());
                     logs.add(new Log(
                             date,"type-a","status-a","Write[Provider]:"+text
                     ));
                     System.out.println("Write[Provider]:"+text);
-                    writer.println(text);
                 }
                 PrintWriter outputFile = new PrintWriter("./src/main/index.html");
+
+
 
                 outputFile.println(Constants.html_before);
                 for(int i =0;i<logs.size();i++){

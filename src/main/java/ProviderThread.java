@@ -23,7 +23,6 @@ public class ProviderThread extends Thread{
                 InputStream inputB = socketBoard.getInputStream();
                 OutputStream outputB = socketBoard.getOutputStream();
                 PrintWriter writerB = new PrintWriter(outputB,true);
-                BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
 
                 try{
                     var isFound = Constants.checkBoard("Write[User]:Request");
@@ -43,12 +42,13 @@ public class ProviderThread extends Thread{
                     if(isFound){
                         writerP.println(requestB);
                         System.out.println("Signal[User]:Respond");
+
+                        UserRead = readerP.readLine();
+                        System.out.println("Read[User]: "+UserRead);
                     }
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
-
 
                 socketBoard.close();
             }
