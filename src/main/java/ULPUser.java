@@ -1,6 +1,12 @@
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.spec.*;
+import java.util.Arrays;
+import javax.crypto.*;
+
 
 public class ULPUser {
     public static void main(String[] args) {
@@ -9,17 +15,14 @@ public class ULPUser {
             InputStream inputB = socketBoard.getInputStream();
             OutputStream outputB = socketBoard.getOutputStream();
             PrintWriter writerB = new PrintWriter(outputB,true);
+            BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
 
-            String requestB = "Request";
-            writerB.println(requestB);
-            try{
-                var isFound = Constants.checkBoard("Write[User]:Request");
-                if(isFound){
-                    System.out.println("Board: Write Success");
-                }
-            }catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
+            System.out.println("USER: Generate DH keypair ...");
+            KeyPairGenerator userKpairGen = KeyPairGenerator.getInstance("DH");
+            userKpairGen.initialize(2048);
+            KeyPair userKpair = userKpairGen.generateKeyPair();
+
 
             try(Socket socketProvider = new Socket("localhost",6800)){
                 InputStream inputP = socketProvider.getInputStream();
@@ -27,6 +30,46 @@ public class ULPUser {
                 PrintWriter writerP = new PrintWriter(outputP,true);
                 BufferedReader readerP = new BufferedReader(new InputStreamReader(inputP));
 
+                writerB.println("User");
+
+                //Exchanging Keys for DH
+                writerB.println(userKpair.getPublic().getEncoded());            //Send User Public Key to board after encode
+                writerP.println(userKpair.getPublic().getEncoded());            //Send User Public Key to provider after encode
+
+                System.out.println("USER: Initialize ...");
+                KeyAgreement userKeyAgree = KeyAgreement.getInstance("DH");
+                userKeyAgree.init(userKpair.getPrivate());
+
+                byte [] providerKey = readerP.readLine().getBytes();              //Get Provider Public Key
+
+                X509EncodedKeySpec ks = new X509EncodedKeySpec(providerKey);      //Decode recived key
+                KeyFactory kf = KeyFactory.getInstance("RSA");
+                PublicKey providerPublicKey = kf.generatePublic(ks);
+
+                Key upKey = userKeyAgree.doPhase(providerPublicKey, false);
+                writerB.println(Arrays.toString(upKey.getEncoded()));                                //Send UP public key to Board
+
+
+                byte [] pbRead = readerP.readLine().getBytes();                      //Get Board-Provider mix key from Board
+                ks = new X509EncodedKeySpec(pbRead);                         //Decode recived key
+                kf = KeyFactory.getInstance("RSA");
+                PublicKey bpKey = kf.generatePublic(ks);
+
+                userKeyAgree.doPhase(bpKey, true);
+
+                byte[] sharedSecret = userKeyAgree.generateSecret();        //Shared ubp key is achieved
+                System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
+
+                String requestB = "Request";
+                writerB.println(requestB);
+                try{
+                    var isFound = Constants.checkBoard("Write[User]:Request");
+                    if(isFound){
+                        System.out.println("Board: Write Success");
+                    }
+                }catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 String requestP = "Request";
                 writerP.println(requestP);
@@ -78,6 +121,9 @@ public class ULPUser {
 
         } catch (IOException ex) {
             System.out.println("I/O error: " + ex.getMessage());
+        }catch (Exception e){
+            System.out.println("Exception: " + e.getMessage());
+
         }
     }
 }
