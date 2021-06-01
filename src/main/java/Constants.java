@@ -1,3 +1,4 @@
+import javax.net.ssl.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -5,9 +6,14 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 
+
 public class Constants {
+    public static final int delay = 1000; // in millis
+
     public static String html_before="<!doctype html>\n" +
             "<html lang=\"en\">\n" +
             "\n" +
@@ -52,26 +58,72 @@ public class Constants {
 
         URL url = new URL("http://localhost:8080");
 
-            URLConnection con = url.openConnection();
-            InputStream is =con.getInputStream();
+        URLConnection con = url.openConnection();
+        InputStream is =con.getInputStream();
 
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
-            String line = null;
+        String line = null;
 
-            while ((line = br.readLine()) != null) {
-                if(line.contains("<td>")){
-                    line = line.replace("<td>","");
-                    var split_line = line.split("</td>");
-                    System.out.println(split_line[0]+split_line[1]+split_line[2]+split_line[3]);
-                    if(split_line[3].contains(log_to_check)){
-                        System.out.println(split_line[3] + " is Found!");
-                        return true;
-                    }
+        while ((line = br.readLine()) != null) {
+            if(line.contains("<td>")){
+                line = line.replace("<td>","");
+                var split_line = line.split("</td>");
+                System.out.println(split_line[0]+split_line[1]+split_line[2]+split_line[3]);
+                if(split_line[3].contains(log_to_check)){
+                    System.out.println(split_line[3] + " is Found!");
+                    return true;
                 }
             }
-            //System.exit(0);
-            return false;
+        }
+        //System.exit(0);
+        return false;
     }
 
+    public static SSLContext getCtx(String trustPath, String keyPath) {
+        try{
+            final char [] storePassword = new char[]{'1','2','3','4','5','6'};
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            InputStream tstore = Constants.class.getResourceAsStream(trustPath);
+            trustStore.load(tstore, storePassword);
+            tstore.close();
+            TrustManagerFactory tmf = TrustManagerFactory
+                    .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustStore);
+
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            InputStream kstore = Constants.class.getResourceAsStream(keyPath);
+            keyStore.load(kstore, storePassword);
+            KeyManagerFactory kmf = KeyManagerFactory
+                    .getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            kmf.init(keyStore, storePassword);
+            SSLContext ctx = SSLContext.getInstance("TLS");
+            ctx.init(kmf.getKeyManagers(), tmf.getTrustManagers(),
+                    SecureRandom.getInstanceStrong());
+            return ctx;
+        }
+        catch (Exception ex){
+            System.out.println("Key GTX exception: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
+    public static final String[] protocols = new String[] {"TLSv1","TLSv1.1","TLSv1.2","TLSv1.3"};
+    public static final String[] cipher_suites = new String[] {"TLS_AES_128_GCM_SHA256"};
+
+
+    public static SSLSocket getClientSocket(SSLContext ctx, int port) throws IOException {
+        SSLSocket socket = (SSLSocket) ctx.getSocketFactory().createSocket("localhost", port);
+        socket.setEnabledProtocols(Constants.protocols);
+        socket.setEnabledCipherSuites(Constants.cipher_suites);
+        return socket;
+    }
+
+    public static SSLServerSocket getServerSocket(SSLContext ctx, int port) throws IOException {
+        SSLServerSocket socket = (SSLServerSocket) ctx.getServerSocketFactory().createServerSocket(port);
+        socket.setEnabledCipherSuites(Constants.cipher_suites);
+        socket.setEnabledProtocols(Constants.protocols);
+        return socket;
+    }
 }

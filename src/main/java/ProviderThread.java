@@ -1,16 +1,14 @@
-import javax.crypto.KeyAgreement;
-import javax.crypto.interfaces.DHPublicKey;
-import javax.crypto.spec.DHParameterSpec;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.security.*;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
 
 
 public class ProviderThread extends Thread {
-    private Socket socketProvider;
+    private final Socket socketProvider;
 
     public ProviderThread(Socket socketProvider) {
         this.socketProvider = socketProvider;
@@ -23,7 +21,7 @@ public class ProviderThread extends Thread {
             PrintWriter writerP = new PrintWriter(outputP,true);
             BufferedReader readerP = new BufferedReader(new InputStreamReader(inputP));
 
-
+            /*
             byte [] userRead = readerP.readLine().getBytes();              //Get User Public Key
 
             X509EncodedKeySpec ks = new X509EncodedKeySpec(userRead);      //Decode recived key
@@ -44,13 +42,18 @@ public class ProviderThread extends Thread {
 
             writerP.println(Arrays.toString(providerKpair.getPublic().getEncoded()));                            //Send PB public key to Provider
 
+            */
 
-            try(Socket socketBoard = new Socket("localhost",6868)){
-                InputStream inputB = socketBoard.getInputStream();
+            try{
+                SSLContext ctx = Constants.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
+                SSLSocket socketBoard = Constants.getClientSocket(ctx,6868);
+
+                //InputStream inputB = socketBoard.getInputStream();
                 OutputStream outputB = socketBoard.getOutputStream();
                 PrintWriter writerB = new PrintWriter(outputB,true);
-                BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
+                //BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
 
+                /*
                 writerB.println("Board"+userRead.toString());
 
                 byte [] boardRead = readerB.readLine().getBytes();              //Get Board Public Key
@@ -71,11 +74,10 @@ public class ProviderThread extends Thread {
                 providerKeyAgree.doPhase(ubKey, true);
                 byte[] sharedSecret = providerKeyAgree.generateSecret();        //Shared ubp key is achieved
                 System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
-
+*/
 
                 String UserRead = readerP.readLine();
                 System.out.println("Read[User]: "+UserRead);
-
 
 
                 try{
@@ -86,6 +88,7 @@ public class ProviderThread extends Thread {
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                writerB.println("Board");
 
 
 

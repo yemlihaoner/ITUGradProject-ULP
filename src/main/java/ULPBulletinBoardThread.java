@@ -14,20 +14,22 @@ import java.util.Date;
 public class ULPBulletinBoardThread extends Thread{
         private Socket socket;
         private ArrayList<Log> logs;
-        private ArrayList<LogKeyPair> logKeys;
+      //  private ArrayList<LogKeyPair> logKeys;
 
-        public ULPBulletinBoardThread(Socket socket, ArrayList<Log> logs,ArrayList<LogKeyPair> logKeys) {
+        public ULPBulletinBoardThread(Socket socket, ArrayList<Log> logs
+        //        ,ArrayList<LogKeyPair> logKeys
+        ) {
             this.socket = socket;
             this.logs=logs;
-            this.logKeys=logKeys;
+       //     this.logKeys=logKeys;
         }
 
         public void run(){
             try{
                 InputStream input = socket.getInputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output,true);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
                 Date date;
                 String text;
@@ -35,6 +37,7 @@ public class ULPBulletinBoardThread extends Thread{
                 String type = reader.readLine();
                 if(type.equals("User")){
 
+                    /*
                     String userReadStr = reader.readLine();
                     byte [] userRead = userReadStr.getBytes();              //Get User Public Key
                     System.out.println("BOARD: "+userRead.toString());
@@ -71,7 +74,7 @@ public class ULPBulletinBoardThread extends Thread{
                     System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
 
 
-
+                    */
                     text = reader.readLine();
                     System.out.println("Read:"+text);
 
@@ -89,7 +92,8 @@ public class ULPBulletinBoardThread extends Thread{
                             date,"type-a","status-a","Write[User]:"+text
                     ));
                     System.out.println("Write[User]:"+text);
-                }else if (type.startsWith("Board")){
+                }else if (type.equals("Board")){
+                    /*
                     String userKey = type.substring(5);
                     LogKeyPair logKey = null;
                     for (LogKeyPair logkey:logKeys
@@ -102,7 +106,7 @@ public class ULPBulletinBoardThread extends Thread{
                     if(logKey==null)return;
                     writer.println(logKey.boardKey);                            //Send Board public key to Provider
                     writer.println(logKey.UBKey);                            //Send Board public key to Provider
-
+                    */
 
                     text = reader.readLine();
                     System.out.println("Read:"+text);

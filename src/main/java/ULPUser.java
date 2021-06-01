@@ -1,30 +1,36 @@
+import javax.net.ssl.*;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.security.spec.*;
-import java.util.Arrays;
-import javax.crypto.*;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+
 
 
 public class ULPUser {
     public static void main(String[] args) {
 
-        try(Socket socketBoard = new Socket("localhost",6868)){
+        try{
+
+            SSLContext ctx = Constants.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
+            SSLSocket socketBoard = Constants.getClientSocket(ctx,6868);
+
             InputStream inputB = socketBoard.getInputStream();
             OutputStream outputB = socketBoard.getOutputStream();
             PrintWriter writerB = new PrintWriter(outputB,true);
             BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
 
-
+            /*
             System.out.println("USER: Generate DH keypair ...");
             KeyPairGenerator userKpairGen = KeyPairGenerator.getInstance("DH");
             userKpairGen.initialize(2048);
             KeyPair userKpair = userKpairGen.generateKeyPair();
+            */
 
+            try{
+                ctx = Constants.getCtx("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
+                SSLSocket socketProvider = Constants.getClientSocket(ctx,6800);
 
-            try(Socket socketProvider = new Socket("localhost",6800)){
                 InputStream inputP = socketProvider.getInputStream();
                 OutputStream outputP = socketProvider.getOutputStream();
                 PrintWriter writerP = new PrintWriter(outputP,true);
@@ -32,6 +38,7 @@ public class ULPUser {
 
                 writerB.println("User");
 
+                /*
                 //Exchanging Keys for DH
                 writerB.println(userKpair.getPublic().getEncoded());            //Send User Public Key to board after encode
                 writerP.println(userKpair.getPublic().getEncoded());            //Send User Public Key to provider after encode
@@ -59,9 +66,12 @@ public class ULPUser {
 
                 byte[] sharedSecret = userKeyAgree.generateSecret();        //Shared ubp key is achieved
                 System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
+                */
+
 
                 String requestB = "Request";
                 writerB.println(requestB);
+
                 try{
                     var isFound = Constants.checkBoard("Write[User]:Request");
                     if(isFound){
@@ -106,6 +116,7 @@ public class ULPUser {
                 }
 
                 socketProvider.close();
+
             }
             catch (UnknownHostException ex) {
                 System.out.println("Server not found: " + ex.getMessage());
@@ -113,6 +124,7 @@ public class ULPUser {
             } catch (IOException ex) {
                 System.out.println("I/O error: " + ex.getMessage());
             }
+
 
             socketBoard.close();
         }
