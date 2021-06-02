@@ -5,6 +5,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.UUID;
 
 
 public class ProviderThread extends Thread {
@@ -74,30 +75,30 @@ public class ProviderThread extends Thread {
                 providerKeyAgree.doPhase(ubKey, true);
                 byte[] sharedSecret = providerKeyAgree.generateSecret();        //Shared ubp key is achieved
                 System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
-*/
+                */
 
                 String UserRead = readerP.readLine();
-                System.out.println("Read[User]: "+UserRead);
+                String uniqueID = readerP.readLine();
+                System.out.println("Read[User]: "+UserRead+ "ID: "+uniqueID);
 
 
                 try{
-                    var isFound = Constants.checkBoard("Write[User]:Request");
+                    var isFound = Constants.checkBoard(uniqueID,"Request");
                     if(isFound){
                         System.out.println("Read[Board]:Request");
                     }
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                writerB.println("Board");
-
-
+                writerB.println("Provider");
 
                 String requestB = "Respond";
                 writerB.println(requestB);
-                System.out.println("Write[Board]:"+requestB);
+                writerB.println(uniqueID);
+                System.out.println("Write[Provider]:"+requestB);
 
                 try{
-                    var isFound = Constants.checkBoard("Write[Provider]:Respond");
+                    var isFound = Constants.checkBoard(uniqueID,"Respond");
                     if(isFound){
                         writerP.println(requestB);
                         System.out.println("Signal[User]:Respond");

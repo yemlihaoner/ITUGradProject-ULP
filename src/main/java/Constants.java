@@ -44,8 +44,8 @@ public class Constants {
             "    <tr>\n" +
             "        <th>Time</th>\n" +
             "        <th>Type</th>\n" +
-            "        <th>Status</th>\n" +
-            "        <th>Log</th>\n" +
+            "        <th>LogID</th>\n" +
+            "        <th>Content</th>\n" +
             "    </tr>";
     public static String html_after="\n" +
             "</table>\n" +
@@ -53,7 +53,7 @@ public class Constants {
             "</html>";
     public static SimpleDateFormat dateFormatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss");
 
-    public static boolean checkBoard(String log_to_check) throws IOException, InterruptedException {
+    public static boolean checkBoard(String id,String type) throws IOException, InterruptedException {
         Thread.sleep(500);
 
         URL url = new URL("http://localhost:8080");
@@ -69,9 +69,9 @@ public class Constants {
             if(line.contains("<td>")){
                 line = line.replace("<td>","");
                 var split_line = line.split("</td>");
-                System.out.println(split_line[0]+split_line[1]+split_line[2]+split_line[3]);
-                if(split_line[3].contains(log_to_check)){
-                    System.out.println(split_line[3] + " is Found!");
+                //System.out.println(split_line[0]+split_line[1]+split_line[2]+split_line[3]);
+                if(split_line[1].contains(type) && split_line[2].contains(id) ){
+                    System.out.println( split_line[2] + " - " + split_line[1] + " is Found!");
                     return true;
                 }
             }

@@ -32,7 +32,7 @@ public class ULPBulletinBoardThread extends Thread{
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
                 Date date;
-                String text;
+                String text,id;
 
                 String type = reader.readLine();
                 if(type.equals("User")){
@@ -76,23 +76,36 @@ public class ULPBulletinBoardThread extends Thread{
 
                     */
                     text = reader.readLine();
-                    System.out.println("Read:"+text);
+                    while(!text.equals("Request")){
+                        Thread.sleep(Constants.delay);
+                        text = reader.readLine();
+                    }
+                    id = reader.readLine();
+
+                    System.out.println("Read: "+text+" ID: "+id);
 
                     date = new Date(System.currentTimeMillis());
 
                     logs.add(new Log(
-                            date,"type-a","status-a","Write[User]:"+text
+                            date,text,id,"Write[User]:"+text
                     ));
+                    updateFile(logs);
                     System.out.println("Write[User]:"+text);
 
                     text = reader.readLine();
+                    while(!text.equals("Testimonial")){
+                        Thread.sleep(Constants.delay);
+                        text = reader.readLine();
+                    }
                     System.out.println("Read:"+text);
 
                     logs.add(new Log(
-                            date,"type-a","status-a","Write[User]:"+text
+                            date,text,id,"Write[User]:"+text
                     ));
+                    updateFile(logs);
+
                     System.out.println("Write[User]:"+text);
-                }else if (type.equals("Board")){
+                }else if (type.equals("Provider")){
                     /*
                     String userKey = type.substring(5);
                     LogKeyPair logKey = null;
@@ -109,32 +122,18 @@ public class ULPBulletinBoardThread extends Thread{
                     */
 
                     text = reader.readLine();
-                    System.out.println("Read:"+text);
+                    id = reader.readLine();
+                    System.out.println("Read: "+text+" ID: "+id);
+
 
                     date = new Date(System.currentTimeMillis());
                     logs.add(new Log(
-                            date,"type-a","status-a","Write[Provider]:"+text
+                            date,text,id,"Write[Provider]:"+text
                     ));
+                    updateFile(logs);
                     System.out.println("Write[Provider]:"+text);
                 }
-                PrintWriter outputFile = new PrintWriter("./src/main/index.html");
 
-
-
-                outputFile.println(Constants.html_before);
-                for (Log log : logs) {
-                    var row =
-                            "        <td>" + Constants.dateFormatter.format(log.time) + "</td>" +
-                                    "        <td>" + log.type + "</td>" +
-                                    "        <td>" + log.status + "</td>" +
-                                    "        <td>" + log.text + "</td>";
-
-                    outputFile.println("    <tr>");
-                    outputFile.println(row);
-                    outputFile.println("    </tr>");
-                }
-                outputFile.println(Constants.html_after);
-                outputFile.close();
                 socket.close();
             }catch (IOException ex) {
                 System.out.println("Server exception: " + ex.getMessage());
@@ -143,4 +142,23 @@ public class ULPBulletinBoardThread extends Thread{
                 System.out.println("Exception: " + e.getMessage());
             }
         }
+
+    private void updateFile(ArrayList<Log> logs) throws FileNotFoundException {
+        PrintWriter outputFile = new PrintWriter("./src/main/index.html");
+
+        outputFile.println(Constants.html_before);
+        for (Log log : logs) {
+            var row =
+                    "        <td>" + Constants.dateFormatter.format(log.time) + "</td>" +
+                            "        <td>" + log.type + "</td>" +
+                            "        <td>" + log.id + "</td>" +
+                            "        <td>" + log.text + "</td>";
+
+            outputFile.println("    <tr>");
+            outputFile.println(row);
+            outputFile.println("    </tr>");
+        }
+        outputFile.println(Constants.html_after);
+        outputFile.close();
+    }
 }

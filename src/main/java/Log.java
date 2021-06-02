@@ -3,12 +3,12 @@ import java.util.Date;
 public class Log {
     public Date time;
     public String type;
-    public String status;
+    public String id;
     public String text;
-    public Log(Date time,String type,String status,String text){
+    public Log(Date time,String type,String id,String text){
         this.time=time;
         this.type = type;
-        this.status=status;
+        this.id=id;
         this.text=text;
     }
 }

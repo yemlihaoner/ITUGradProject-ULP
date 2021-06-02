@@ -4,7 +4,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-
+import java.util.UUID;
 
 
 public class ULPUser {
@@ -36,6 +36,7 @@ public class ULPUser {
                 PrintWriter writerP = new PrintWriter(outputP,true);
                 BufferedReader readerP = new BufferedReader(new InputStreamReader(inputP));
 
+                Thread.sleep(Constants.delay/2);
                 writerB.println("User");
 
                 /*
@@ -68,55 +69,72 @@ public class ULPUser {
                 System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
                 */
 
-
                 String requestB = "Request";
-                writerB.println(requestB);
+                String uniqueID = UUID.randomUUID().toString();
 
                 try{
-                    var isFound = Constants.checkBoard("Write[User]:Request");
-                    if(isFound){
-                        System.out.println("Board: Write Success");
+                    boolean isFound = false;
+                    while(!isFound){
+                        Thread.sleep(Constants.delay/2);
+                        writerB.println(requestB);
+                        writerB.println(uniqueID);
+
+                        isFound = Constants.checkBoard(uniqueID,"Request");
+                        if(!isFound){
+                            Thread.sleep(Constants.delay*5);
+                        }
                     }
+                    System.out.println("Board: Write Success");
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
 
                 String requestP = "Request";
-                writerP.println(requestP);
-
-                System.out.println("Signal[Provider]:Request");
-
-                String providerRead = readerP.readLine();
-                System.out.println("Read[Provider]:"+providerRead);
 
                 try{
-                    var isFound = Constants.checkBoard("Write[Provider]:Respond");
-                    if(isFound){
-                        System.out.println("Board: Write Success");
+                    boolean isFound = false;
+                    while(!isFound){
+                        Thread.sleep(Constants.delay/2);
+                        writerP.println(requestP);
+                        writerP.println(uniqueID);
 
+                        System.out.println("Signal[Provider]:Request");
+                        String providerRead = readerP.readLine();
+                        System.out.println("Read[Provider]:"+providerRead);
 
-                        //User is using service
-                        Thread.sleep(1000);
-
-                        //User is using service
-
-
-                        requestB = "Testimonial";
-                        writerB.println(requestB);
-
-                        isFound = Constants.checkBoard("Write[User]:Testimonial");
-                        if(isFound){
-                            System.out.println("Board: Write Success");
-                            requestP = "Testimonial";
-                            writerP.println(requestP);
+                        isFound = Constants.checkBoard(uniqueID,"Respond");
+                        if(!isFound){
+                            Thread.sleep(Constants.delay*5);
                         }
                     }
+
+                    System.out.println("Board: Write Success");
+
+                    //User is using service
+                    Thread.sleep(1000);
+                    //User is using service
+
+                    requestB = "Testimonial";
+                    isFound=false;
+                    while(!isFound){
+                        Thread.sleep(Constants.delay/2);
+                        writerB.println(requestB);
+
+                        isFound = Constants.checkBoard(uniqueID,"Testimonial");
+                        if(!isFound){
+                            Thread.sleep(Constants.delay*5);
+                        }
+                    }
+
+                    System.out.println("Board: Write Success");
+                    requestP = "Testimonial";
+                    writerP.println(requestP);
+
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
 
                 socketProvider.close();
-
             }
             catch (UnknownHostException ex) {
                 System.out.println("Server not found: " + ex.getMessage());
