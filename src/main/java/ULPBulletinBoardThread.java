@@ -1,15 +1,12 @@
-import javax.crypto.KeyAgreement;
-import javax.crypto.interfaces.DHPublicKey;
-import javax.crypto.spec.DHParameterSpec;
+import Classes.Log;
+import Classes.Request.Request;
+import Classes.Response.Response;
+import Classes.Testimonial.Testimonial;
 import java.io.*;
 import java.net.Socket;
-import java.security.*;
-import java.security.spec.X509EncodedKeySpec;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
+import java.util.UUID;
 
 public class ULPBulletinBoardThread extends Thread{
         private Socket socket;
@@ -30,6 +27,8 @@ public class ULPBulletinBoardThread extends Thread{
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output,true);
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                ObjectOutputStream obj_WriterP = new ObjectOutputStream(output);
+                ObjectInputStream obj_InputP = new ObjectInputStream(input);
 
                 Date date;
                 String text,id;
@@ -75,36 +74,37 @@ public class ULPBulletinBoardThread extends Thread{
 
 
                     */
-                    text = reader.readLine();
+                    Request req = (Request) obj_InputP.readObject();
+
+                    /*text = reader.readLine();
                     while(!text.equals("Request")){
                         Thread.sleep(Constants.delay);
                         text = reader.readLine();
                     }
-                    id = reader.readLine();
-
-                    System.out.println("Read: "+text+" ID: "+id);
-
+                    */
                     date = new Date(System.currentTimeMillis());
-
+                    String N = UUID.randomUUID().toString();
                     logs.add(new Log(
-                            date,text,id,"Write[User]:"+text
+                            req.first.date,req.first.proposal.accessType,N,req.second.R_ksb
                     ));
                     updateFile(logs);
-                    System.out.println("Write[User]:"+text);
+                    System.out.println("Write[User]:"+req.toString());
 
-                    text = reader.readLine();
-                    while(!text.equals("Testimonial")){
-                        Thread.sleep(Constants.delay);
-                        text = reader.readLine();
-                    }
-                    System.out.println("Read:"+text);
+                    Testimonial testimonial = (Testimonial) obj_InputP.readObject();
+
+                    //text = reader.readLine();
+                    //while(!text.equals("Testimonial")){
+                    //    Thread.sleep(Constants.delay);
+                    //    text = reader.readLine();
+                    //}
+                    //System.out.println("Read:"+text);
 
                     logs.add(new Log(
-                            date,text,id,"Write[User]:"+text
+                            date,"Testimonial",N,testimonial.first.comment
                     ));
                     updateFile(logs);
 
-                    System.out.println("Write[User]:"+text);
+                    //System.out.println("Write[User]:"+text);
                 }else if (type.equals("Provider")){
                     /*
                     String userKey = type.substring(5);
@@ -120,18 +120,15 @@ public class ULPBulletinBoardThread extends Thread{
                     writer.println(logKey.boardKey);                            //Send Board public key to Provider
                     writer.println(logKey.UBKey);                            //Send Board public key to Provider
                     */
+                    Response response = (Response) obj_InputP.readObject();
 
-                    text = reader.readLine();
-                    id = reader.readLine();
-                    System.out.println("Read: "+text+" ID: "+id);
-
+                    System.out.println("Read: "+"Response"+" ID: "+response.second.n);
 
                     date = new Date(System.currentTimeMillis());
                     logs.add(new Log(
-                            date,text,id,"Write[Provider]:"+text
+                            date,"Response",response.second.n,response.second.R_ksb
                     ));
                     updateFile(logs);
-                    System.out.println("Write[Provider]:"+text);
                 }
 
                 socket.close();
@@ -151,8 +148,8 @@ public class ULPBulletinBoardThread extends Thread{
             var row =
                     "        <td>" + Constants.dateFormatter.format(log.time) + "</td>" +
                             "        <td>" + log.type + "</td>" +
-                            "        <td>" + log.id + "</td>" +
-                            "        <td>" + log.text + "</td>";
+                            "        <td>" + log.N + "</td>" +
+                            "        <td>" + log.content + "</td>";
 
             outputFile.println("    <tr>");
             outputFile.println(row);

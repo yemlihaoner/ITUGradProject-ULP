@@ -1,10 +1,15 @@
-import javax.net.SocketFactory;
+import Classes.PhaseIII;
+import Classes.PhaseIX;
+import Classes.PhaseVI;
+import Classes.Response.Response;
+import Classes.Response.ResponsePartI;
+import Classes.Response.ResponsePartII;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Date;
 import java.util.UUID;
 
 
@@ -21,11 +26,27 @@ public class ProviderThread extends Thread {
             OutputStream outputP = socketProvider.getOutputStream();
             PrintWriter writerP = new PrintWriter(outputP,true);
             BufferedReader readerP = new BufferedReader(new InputStreamReader(inputP));
+            ObjectOutputStream obj_WriterP = new ObjectOutputStream(outputP);
+            ObjectInputStream obj_InputP = new ObjectInputStream(inputP);
+
+            //TODO:
+
+            //Socket side
+            //Object serialization write:
+            //ObjectOutputStream outStream = new ObjectOutputStream(outputP);
+            //Object serialization read:
+            //ObjectInputStream inStream = new ObjectInputStream(inputP);
+
+            //To get object:
+            //Object objectName = (Object) inStream.readObject();
+            //To send object:
+            //outStream.writeObject(objectName);
+
 
             /*
             byte [] userRead = readerP.readLine().getBytes();              //Get User Public Key
 
-            X509EncodedKeySpec ks = new X509EncodedKeySpec(userRead);      //Decode recived key
+            X509EncodedKeySpec ks = new X509EncodedKeySpec(userRead);      //Decode received key
             KeyFactory kf = KeyFactory.getInstance("RSA");
             PublicKey userPublicKey = kf.generatePublic(ks);
             System.out.println("BOARD: "+userPublicKey.toString());
@@ -53,13 +74,15 @@ public class ProviderThread extends Thread {
                 OutputStream outputB = socketBoard.getOutputStream();
                 PrintWriter writerB = new PrintWriter(outputB,true);
                 //BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
+                ObjectOutputStream obj_WriterB = new ObjectOutputStream(outputB);
+                //ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
 
                 /*
                 writerB.println("Board"+userRead.toString());
 
                 byte [] boardRead = readerB.readLine().getBytes();              //Get Board Public Key
 
-                ks = new X509EncodedKeySpec(boardRead);      //Decode recived key
+                ks = new X509EncodedKeySpec(boardRead);      //Decode received key
                 kf = KeyFactory.getInstance("RSA");
                 PublicKey boardPublicKey = kf.generatePublic(ks);
 
@@ -77,35 +100,47 @@ public class ProviderThread extends Thread {
                 System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
                 */
 
-                String UserRead = readerP.readLine();
-                String uniqueID = readerP.readLine();
-                System.out.println("Read[User]: "+UserRead+ "ID: "+uniqueID);
-
+                PhaseIII phaseIII = (PhaseIII) obj_InputP.readObject();
 
                 try{
-                    var isFound = Constants.checkBoard(uniqueID,"Request");
-                    if(isFound){
+                    var isFound = Constants.checkBoard(phaseIII.N,"Request");
+                    if(isFound!=null){
                         System.out.println("Read[Board]:Request");
                     }
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                writerB.println("Provider");
+
+                var date_now = new Date(System.currentTimeMillis());
+                ResponsePartI partI = new ResponsePartI(date_now,phaseIII.R_ks,"a_m");
+                ResponsePartII partII = new ResponsePartII(date_now, phaseIII.R_ksb, UUID.randomUUID().toString(),phaseIII.N);
+                Response resp = new Response(partI,partII);
 
                 String requestB = "Respond";
-                writerB.println(requestB);
-                writerB.println(uniqueID);
-                System.out.println("Write[Provider]:"+requestB);
 
                 try{
-                    var isFound = Constants.checkBoard(uniqueID,"Respond");
-                    if(isFound){
-                        writerP.println(requestB);
-                        System.out.println("Signal[User]:Respond");
+                    String answer = null;
+                    while(answer==null){
+                        Thread.sleep(Constants.delay/2);
+                        writerB.println("Provider");
 
-                        UserRead = readerP.readLine();
-                        System.out.println("Read[User]: "+UserRead);
+                        obj_WriterB.writeObject(resp);
+                        System.out.println("Write[Provider]:"+requestB);
+
+                        answer = Constants.checkBoard(phaseIII.N,"Response");
+                        if(answer==null){
+                            Thread.sleep(Constants.delay*5);
+                        }
                     }
+
+                    String M = UUID.randomUUID().toString();
+                    PhaseVI phaseVI = new PhaseVI(phaseIII.N,M);
+                    obj_WriterP.writeObject(phaseVI);
+
+                    System.out.println("Signal[User]:Respond");
+
+                    PhaseIX phaseIX = (PhaseIX)obj_InputP.readObject();
+                    System.out.println("Read[User]: "+phaseIX.N);
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }

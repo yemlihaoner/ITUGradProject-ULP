@@ -53,7 +53,7 @@ public class Constants {
             "</html>";
     public static SimpleDateFormat dateFormatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss");
 
-    public static boolean checkBoard(String id,String type) throws IOException, InterruptedException {
+    public static String checkBoard(String id,String type) throws IOException, InterruptedException {
         Thread.sleep(500);
 
         URL url = new URL("http://localhost:8080");
@@ -70,14 +70,15 @@ public class Constants {
                 line = line.replace("<td>","");
                 var split_line = line.split("</td>");
                 //System.out.println(split_line[0]+split_line[1]+split_line[2]+split_line[3]);
-                if(split_line[1].contains(type) && split_line[2].contains(id) ){
-                    System.out.println( split_line[2] + " - " + split_line[1] + " is Found!");
-                    return true;
+                var index = type.equals("Request")?3:2;
+                if(split_line[1].contains(type) && split_line[index].contains(id) ){
+                    System.out.println( split_line[3] + " - " + split_line[1] + " is Found!");
+                    return split_line[2].replaceAll(" ","");
                 }
             }
         }
         //System.exit(0);
-        return false;
+        return null;
     }
 
     public static SSLContext getCtx(String trustPath, String keyPath) {

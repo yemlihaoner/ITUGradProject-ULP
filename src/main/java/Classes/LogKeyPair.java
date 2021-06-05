@@ -1,3 +1,5 @@
+package Classes;
+
 public class LogKeyPair {
     public String userKey;
     public String boardKey;

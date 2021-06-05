@@ -1,7 +1,6 @@
+import Classes.Log;
 import javax.net.ssl.*;
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 
 public class ULPBulletinBoard {

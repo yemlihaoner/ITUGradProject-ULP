@@ -1,9 +1,17 @@
+import Classes.PhaseIII;
+import Classes.PhaseIX;
+import Classes.PhaseVI;
+import Classes.Request.Proposal;
+import Classes.Request.Request;
+import Classes.Request.RequestPartI;
+import Classes.Request.RequestPartII;
+import Classes.Testimonial.Testimonial;
+import Classes.Testimonial.TestimonialPartI;
+import Classes.Testimonial.TestimonialPartII;
 import javax.net.ssl.*;
 import java.io.*;
-import java.net.Socket;
 import java.net.UnknownHostException;
-import java.security.KeyStore;
-import java.security.SecureRandom;
+import java.util.Date;
 import java.util.UUID;
 
 
@@ -19,7 +27,8 @@ public class ULPUser {
             OutputStream outputB = socketBoard.getOutputStream();
             PrintWriter writerB = new PrintWriter(outputB,true);
             BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
-
+            ObjectOutputStream obj_WriterB = new ObjectOutputStream(outputB);
+            ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
             /*
             System.out.println("USER: Generate DH keypair ...");
             KeyPairGenerator userKpairGen = KeyPairGenerator.getInstance("DH");
@@ -35,8 +44,16 @@ public class ULPUser {
                 OutputStream outputP = socketProvider.getOutputStream();
                 PrintWriter writerP = new PrintWriter(outputP,true);
                 BufferedReader readerP = new BufferedReader(new InputStreamReader(inputP));
+                ObjectOutputStream obj_WriterP = new ObjectOutputStream(outputP);
+                ObjectInputStream obj_InputP = new ObjectInputStream(inputP);
 
-                Thread.sleep(Constants.delay/2);
+
+                var date_now = new Date(System.currentTimeMillis());
+
+                Proposal proposal = new Proposal("testUser","testHost","localhost:6800","Request");
+                RequestPartI partI = new RequestPartI(date_now,UUID.randomUUID().toString(),proposal);
+                RequestPartII partII = new RequestPartII(date_now,UUID.randomUUID().toString());
+                Request req = new Request(partI,partII);
                 writerB.println("User");
 
                 /*
@@ -69,18 +86,14 @@ public class ULPUser {
                 System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
                 */
 
-                String requestB = "Request";
-                String uniqueID = UUID.randomUUID().toString();
-
+                String answer = null;
                 try{
-                    boolean isFound = false;
-                    while(!isFound){
+                    while(answer==null){
+                        obj_WriterB.writeObject(req);
                         Thread.sleep(Constants.delay/2);
-                        writerB.println(requestB);
-                        writerB.println(uniqueID);
 
-                        isFound = Constants.checkBoard(uniqueID,"Request");
-                        if(!isFound){
+                        answer = Constants.checkBoard(req.second.R_ksb,"Request");
+                        if(answer==null){
                             Thread.sleep(Constants.delay*5);
                         }
                     }
@@ -88,22 +101,21 @@ public class ULPUser {
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                String N = answer;
+                PhaseIII phaseIII = new PhaseIII(N, partI.R_ks, partII.R_ksb);
 
-                String requestP = "Request";
-
+                answer = null;
                 try{
-                    boolean isFound = false;
-                    while(!isFound){
+                    while(answer==null){
+                        obj_WriterP.writeObject(phaseIII);
                         Thread.sleep(Constants.delay/2);
-                        writerP.println(requestP);
-                        writerP.println(uniqueID);
 
                         System.out.println("Signal[Provider]:Request");
-                        String providerRead = readerP.readLine();
-                        System.out.println("Read[Provider]:"+providerRead);
+                        PhaseVI phaseVI = (PhaseVI) obj_InputP.readObject();
+                        System.out.println("Read[Provider]:"+phaseVI.N);
 
-                        isFound = Constants.checkBoard(uniqueID,"Respond");
-                        if(!isFound){
+                        answer = Constants.checkBoard(phaseIII.N,"Response");
+                        if(answer==null){
                             Thread.sleep(Constants.delay*5);
                         }
                     }
@@ -114,21 +126,25 @@ public class ULPUser {
                     Thread.sleep(1000);
                     //User is using service
 
-                    requestB = "Testimonial";
-                    isFound=false;
-                    while(!isFound){
-                        Thread.sleep(Constants.delay/2);
-                        writerB.println(requestB);
+                    date_now = new Date(System.currentTimeMillis());
+                    TestimonialPartI t_partI = new TestimonialPartI(date_now, phaseIII.R_ks, "comment");
+                    TestimonialPartII t_partII = new TestimonialPartII(date_now, phaseIII.R_ksb, phaseIII.N);
+                    Testimonial testimonial = new Testimonial(t_partI,t_partII);
 
-                        isFound = Constants.checkBoard(uniqueID,"Testimonial");
-                        if(!isFound){
+                    answer =null;
+                    while(answer==null){
+                        Thread.sleep(Constants.delay/2);
+                        obj_WriterB.writeObject(testimonial);
+
+                        answer = Constants.checkBoard(N,"Testimonial");
+                        if(answer==null){
                             Thread.sleep(Constants.delay*5);
                         }
                     }
 
+                    PhaseIX phaseIX = new PhaseIX(phaseIII.N,"Comment");
                     System.out.println("Board: Write Success");
-                    requestP = "Testimonial";
-                    writerP.println(requestP);
+                    obj_WriterP.writeObject(phaseIX);
 
                 }catch (InterruptedException e) {
                     e.printStackTrace();
