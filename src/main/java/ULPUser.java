@@ -5,23 +5,36 @@ import Classes.Request.Proposal;
 import Classes.Request.Request;
 import Classes.Request.RequestPartI;
 import Classes.Request.RequestPartII;
+import Classes.Response.Response;
 import Classes.Testimonial.Testimonial;
 import Classes.Testimonial.TestimonialPartI;
 import Classes.Testimonial.TestimonialPartII;
+import Utils.CheckBoard;
+import Utils.Constants;
+import Utils.SocketUtils;
+
 import javax.net.ssl.*;
 import java.io.*;
 import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.UUID;
 
-
 public class ULPUser {
     public static void main(String[] args) {
 
         try{
+            /*
+            SecureRandom random = new SecureRandom();
+            KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", "BC");
+            generator.initialize(1024, random);
 
-            SSLContext ctx = Constants.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
-            SSLSocket socketBoard = Constants.getClientSocket(ctx,6868);
+            KeyPair          pair = generator.generateKeyPair();
+            Key              pubKey = pair.getPublic();
+            Key              privKey = pair.getPrivate();
+            */
+
+            SSLContext ctx = SocketUtils.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
+            SSLSocket socketBoard = SocketUtils.getClientSocket(ctx,6868);
 
             InputStream inputB = socketBoard.getInputStream();
             OutputStream outputB = socketBoard.getOutputStream();
@@ -37,8 +50,8 @@ public class ULPUser {
             */
 
             try{
-                ctx = Constants.getCtx("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
-                SSLSocket socketProvider = Constants.getClientSocket(ctx,6800);
+                ctx = SocketUtils.getCtx("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
+                SSLSocket socketProvider = SocketUtils.getClientSocket(ctx,6800);
 
                 InputStream inputP = socketProvider.getInputStream();
                 OutputStream outputP = socketProvider.getOutputStream();
@@ -86,27 +99,27 @@ public class ULPUser {
                 System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
                 */
 
-                String answer = null;
+                String N = null;
                 try{
-                    while(answer==null){
+                    while(N==null){
                         obj_WriterB.writeObject(req);
                         Thread.sleep(Constants.delay/2);
 
-                        answer = Constants.checkBoard(req.second.R_ksb,"Request");
-                        if(answer==null){
+                        N = CheckBoard.checkNForRequest(req);
+                        if(N==null){
                             Thread.sleep(Constants.delay*5);
+                            N = CheckBoard.checkNForRequest(req);
                         }
                     }
                     System.out.println("Board: Write Success");
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                String N = answer;
                 PhaseIII phaseIII = new PhaseIII(N, partI.R_ks, partII.R_ksb);
 
-                answer = null;
+                Response response  = null;
                 try{
-                    while(answer==null){
+                    while(response==null){
                         obj_WriterP.writeObject(phaseIII);
                         Thread.sleep(Constants.delay/2);
 
@@ -114,9 +127,10 @@ public class ULPUser {
                         PhaseVI phaseVI = (PhaseVI) obj_InputP.readObject();
                         System.out.println("Read[Provider]:"+phaseVI.N);
 
-                        answer = Constants.checkBoard(phaseIII.N,"Response");
-                        if(answer==null){
+                        response = CheckBoard.checkResponse(phaseIII.N);
+                        if(response==null){
                             Thread.sleep(Constants.delay*5);
+                            response = CheckBoard.checkResponse(phaseIII.N);
                         }
                     }
 
@@ -131,14 +145,15 @@ public class ULPUser {
                     TestimonialPartII t_partII = new TestimonialPartII(date_now, phaseIII.R_ksb, phaseIII.N);
                     Testimonial testimonial = new Testimonial(t_partI,t_partII);
 
-                    answer =null;
-                    while(answer==null){
+                    Testimonial testimonial1 =null;
+                    while(testimonial1==null){
                         Thread.sleep(Constants.delay/2);
                         obj_WriterB.writeObject(testimonial);
 
-                        answer = Constants.checkBoard(N,"Testimonial");
-                        if(answer==null){
+                        testimonial1 = CheckBoard.checkTestimonial(N);
+                        if(testimonial1==null){
                             Thread.sleep(Constants.delay*5);
+                            testimonial1 = CheckBoard.checkTestimonial(N);
                         }
                     }
 

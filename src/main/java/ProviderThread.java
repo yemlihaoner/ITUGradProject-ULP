@@ -1,9 +1,14 @@
 import Classes.PhaseIII;
 import Classes.PhaseIX;
 import Classes.PhaseVI;
+import Classes.Request.Request;
 import Classes.Response.Response;
 import Classes.Response.ResponsePartI;
 import Classes.Response.ResponsePartII;
+import Utils.CheckBoard;
+import Utils.Constants;
+import Utils.SocketUtils;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
@@ -67,8 +72,8 @@ public class ProviderThread extends Thread {
             */
 
             try{
-                SSLContext ctx = Constants.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
-                SSLSocket socketBoard = Constants.getClientSocket(ctx,6868);
+                SSLContext ctx = SocketUtils.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
+                SSLSocket socketBoard = SocketUtils.getClientSocket(ctx,6868);
 
                 //InputStream inputB = socketBoard.getInputStream();
                 OutputStream outputB = socketBoard.getOutputStream();
@@ -101,10 +106,10 @@ public class ProviderThread extends Thread {
                 */
 
                 PhaseIII phaseIII = (PhaseIII) obj_InputP.readObject();
-
+                Request request;
                 try{
-                    var isFound = Constants.checkBoard(phaseIII.N,"Request");
-                    if(isFound!=null){
+                    request = CheckBoard.checkRequest(phaseIII.N);
+                    if(request!=null){
                         System.out.println("Read[Board]:Request");
                     }
                 }catch (InterruptedException e) {
@@ -117,18 +122,19 @@ public class ProviderThread extends Thread {
                 Response resp = new Response(partI,partII);
 
                 String requestB = "Respond";
+                Response response1;
 
                 try{
-                    String answer = null;
-                    while(answer==null){
+                    response1 = null;
+                    while(response1==null){
                         Thread.sleep(Constants.delay/2);
                         writerB.println("Provider");
 
                         obj_WriterB.writeObject(resp);
                         System.out.println("Write[Provider]:"+requestB);
 
-                        answer = Constants.checkBoard(phaseIII.N,"Response");
-                        if(answer==null){
+                        response1 = CheckBoard.checkResponse(phaseIII.N);
+                        if(response1==null){
                             Thread.sleep(Constants.delay*5);
                         }
                     }

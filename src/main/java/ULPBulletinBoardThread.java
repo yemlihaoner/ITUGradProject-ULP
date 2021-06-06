@@ -2,6 +2,9 @@ import Classes.Log;
 import Classes.Request.Request;
 import Classes.Response.Response;
 import Classes.Testimonial.Testimonial;
+import Utils.Constants;
+import Utils.SerializationUtils;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -84,8 +87,12 @@ public class ULPBulletinBoardThread extends Thread{
                     */
                     date = new Date(System.currentTimeMillis());
                     String N = UUID.randomUUID().toString();
+                    /*logs.add(new Log(
+                            req.first.date, req.first.proposal.accessType,N,req.second.R_ksb
+                    ));*/
+
                     logs.add(new Log(
-                            req.first.date,req.first.proposal.accessType,N,req.second.R_ksb
+                            date, SerializationUtils.serialize(req),N,"encrypted"
                     ));
                     updateFile(logs);
                     System.out.println("Write[User]:"+req.toString());
@@ -98,9 +105,10 @@ public class ULPBulletinBoardThread extends Thread{
                     //    text = reader.readLine();
                     //}
                     //System.out.println("Read:"+text);
+                    date = new Date(System.currentTimeMillis());
 
                     logs.add(new Log(
-                            date,"Testimonial",N,testimonial.first.comment
+                            date,SerializationUtils.serialize(testimonial),N,"encrypted"
                     ));
                     updateFile(logs);
 
@@ -125,8 +133,12 @@ public class ULPBulletinBoardThread extends Thread{
                     System.out.println("Read: "+"Response"+" ID: "+response.second.n);
 
                     date = new Date(System.currentTimeMillis());
-                    logs.add(new Log(
+                    /*logs.add(new Log(
                             date,"Response",response.second.n,response.second.R_ksb
+                    ));*/
+
+                    logs.add(new Log(
+                            date, SerializationUtils.serialize(response),response.second.n,"encrypted"
                     ));
                     updateFile(logs);
                 }
@@ -147,8 +159,8 @@ public class ULPBulletinBoardThread extends Thread{
         for (Log log : logs) {
             var row =
                     "        <td>" + Constants.dateFormatter.format(log.time) + "</td>" +
-                            "        <td>" + log.type + "</td>" +
                             "        <td>" + log.N + "</td>" +
+                            "        <td>" + log.object + "</td>" +
                             "        <td>" + log.content + "</td>";
 
             outputFile.println("    <tr>");

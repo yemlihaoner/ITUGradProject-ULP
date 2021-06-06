@@ -1,17 +1,17 @@
+import Utils.Constants;
+import Utils.SocketUtils;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
 
 public class ULPProvider {
     public static void main(String[] args){
         try{
-            SSLContext ctx = Constants.getCtx("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
+            SSLContext ctx = SocketUtils.getCtx("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
             //System.setProperty("javax.net.debug", "all");
-            SSLServerSocket serverSocket = Constants.getServerSocket(ctx,6800);
+            SSLServerSocket serverSocket = SocketUtils.getServerSocket(ctx,6800);
 
             System.out.println("Server is listening on port " + 6800);
 

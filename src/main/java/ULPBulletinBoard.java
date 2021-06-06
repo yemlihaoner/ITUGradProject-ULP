@@ -1,4 +1,7 @@
 import Classes.Log;
+import Utils.Constants;
+import Utils.SocketUtils;
+
 import javax.net.ssl.*;
 import java.io.*;
 import java.util.ArrayList;
@@ -8,8 +11,8 @@ public class ULPBulletinBoard {
         ArrayList<Log> logs = new ArrayList<Log>();
      //   ArrayList<LogKeyPair> logKeys = new ArrayList<LogKeyPair>();
         try{
-            SSLContext ctx = Constants.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
-            SSLServerSocket serverSocket = Constants.getServerSocket(ctx,6868);
+            SSLContext ctx = SocketUtils.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
+            SSLServerSocket serverSocket = SocketUtils.getServerSocket(ctx,6868);
 
             System.out.println("Server is listening on port " + 6868);
             while (true) {
