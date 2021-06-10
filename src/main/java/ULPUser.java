@@ -1,21 +1,17 @@
+import Classes.EncryptData;
 import Classes.PhaseIII;
 import Classes.PhaseIX;
 import Classes.PhaseVI;
-import Classes.Request.Proposal;
-import Classes.Request.Request;
-import Classes.Request.RequestPartI;
-import Classes.Request.RequestPartII;
 import Classes.Response.Response;
-import Classes.Testimonial.Testimonial;
-import Classes.Testimonial.TestimonialPartI;
-import Classes.Testimonial.TestimonialPartII;
-import Utils.CheckBoard;
-import Utils.Constants;
-import Utils.SocketUtils;
+import Classes.Request.*;
+import Classes.Testimonial.*;
+import Utils.*;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.net.ssl.*;
 import java.io.*;
 import java.net.UnknownHostException;
+import java.security.*;
 import java.util.Date;
 import java.util.UUID;
 
@@ -23,17 +19,16 @@ public class ULPUser {
     public static void main(String[] args) {
 
         try{
-            /*
-            SecureRandom random = new SecureRandom();
-            KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", "BC");
-            generator.initialize(1024, random);
+            Security.addProvider(new BouncyCastleProvider());
+            KeyPair pair = KeyUtils.createKeyForRSA();
+            Key sharedKey = KeyUtils.createKeyForAES();
+            PublicKey pubKey = pair.getPublic();
+            PrivateKey privKey = pair.getPrivate();
+            PublicKey boardPubKey;
+            PublicKey providerPubKey;
 
-            KeyPair          pair = generator.generateKeyPair();
-            Key              pubKey = pair.getPublic();
-            Key              privKey = pair.getPrivate();
-            */
-
-            SSLContext ctx = SocketUtils.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
+            SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
+            assert ctx != null;
             SSLSocket socketBoard = SocketUtils.getClientSocket(ctx,6868);
 
             InputStream inputB = socketBoard.getInputStream();
@@ -42,15 +37,10 @@ public class ULPUser {
             BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
             ObjectOutputStream obj_WriterB = new ObjectOutputStream(outputB);
             ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
-            /*
-            System.out.println("USER: Generate DH keypair ...");
-            KeyPairGenerator userKpairGen = KeyPairGenerator.getInstance("DH");
-            userKpairGen.initialize(2048);
-            KeyPair userKpair = userKpairGen.generateKeyPair();
-            */
 
             try{
-                ctx = SocketUtils.getCtx("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
+                ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
+                assert ctx != null;
                 SSLSocket socketProvider = SocketUtils.getClientSocket(ctx,6800);
 
                 InputStream inputP = socketProvider.getInputStream();
@@ -61,105 +51,94 @@ public class ULPUser {
                 ObjectInputStream obj_InputP = new ObjectInputStream(inputP);
 
 
-                var date_now = new Date(System.currentTimeMillis());
-
-                Proposal proposal = new Proposal("testUser","testHost","localhost:6800","Request");
-                RequestPartI partI = new RequestPartI(date_now,UUID.randomUUID().toString(),proposal);
-                RequestPartII partII = new RequestPartII(date_now,UUID.randomUUID().toString());
-                Request req = new Request(partI,partII);
+                Date date_now = new Date(System.currentTimeMillis());
                 writerB.println("User");
 
-                /*
-                //Exchanging Keys for DH
-                writerB.println(userKpair.getPublic().getEncoded());            //Send User Public Key to board after encode
-                writerP.println(userKpair.getPublic().getEncoded());            //Send User Public Key to provider after encode
+                obj_WriterB.writeObject(pubKey);
+                boardPubKey = (PublicKey)obj_InputB.readObject();
+                obj_WriterP.writeObject(pubKey);
+                providerPubKey = (PublicKey)obj_InputP.readObject();
 
-                System.out.println("USER: Initialize ...");
-                KeyAgreement userKeyAgree = KeyAgreement.getInstance("DH");
-                userKeyAgree.init(userKpair.getPrivate());
+                Contract contract = new Contract("testUser","testHost","localhost:6800","Request");
+                String R_ks=UUID.randomUUID().toString();
+                String R_ksb=UUID.randomUUID().toString();
+                RequestPartI partI = new RequestPartI(date_now,R_ks, contract);
+                RequestPartII partII = new RequestPartII(date_now,R_ksb);
 
-                byte [] providerKey = readerP.readLine().getBytes();              //Get Provider Public Key
+                EncryptData req_enData1 = Cryptography.encryptObjectAES(partI,sharedKey,privKey,providerPubKey);
+                EncryptData req_enData2 = Cryptography.encryptObjectAES(partII,sharedKey,privKey,boardPubKey);
 
-                X509EncodedKeySpec ks = new X509EncodedKeySpec(providerKey);      //Decode recived key
-                KeyFactory kf = KeyFactory.getInstance("RSA");
-                PublicKey providerPublicKey = kf.generatePublic(ks);
-
-                Key upKey = userKeyAgree.doPhase(providerPublicKey, false);
-                writerB.println(Arrays.toString(upKey.getEncoded()));                                //Send UP public key to Board
-
-
-                byte [] pbRead = readerP.readLine().getBytes();                      //Get Board-Provider mix key from Board
-                ks = new X509EncodedKeySpec(pbRead);                         //Decode recived key
-                kf = KeyFactory.getInstance("RSA");
-                PublicKey bpKey = kf.generatePublic(ks);
-
-                userKeyAgree.doPhase(bpKey, true);
-
-                byte[] sharedSecret = userKeyAgree.generateSecret();        //Shared ubp key is achieved
-                System.out.println("SharedSecret: "+ Arrays.toString(sharedSecret));
-                */
+                Request request = new Request(req_enData1,req_enData2);
 
                 String N = null;
                 try{
                     while(N==null){
-                        obj_WriterB.writeObject(req);
+                        obj_WriterB.writeObject(request);
                         Thread.sleep(Constants.delay/2);
 
-                        N = CheckBoard.checkNForRequest(req);
+                        N = CheckBoard.checkNForRequest(request,boardPubKey);
                         if(N==null){
                             Thread.sleep(Constants.delay*5);
-                            N = CheckBoard.checkNForRequest(req);
+                            N = CheckBoard.checkNForRequest(request,boardPubKey);
                         }
                     }
-                    System.out.println("Board: Write Success");
+                    System.out.println("Board: Request Write Success");
                 }catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                PhaseIII phaseIII = new PhaseIII(N, partI.R_ks, partII.R_ksb);
+                PhaseIII phaseIII = new PhaseIII(N, R_ks,R_ksb);
+                EncryptData enc_phaseIII = Cryptography.encryptObjectAES(phaseIII,sharedKey,privKey,providerPubKey);
 
                 Response response  = null;
                 try{
                     while(response==null){
-                        obj_WriterP.writeObject(phaseIII);
+                        obj_WriterP.writeObject(enc_phaseIII);
                         Thread.sleep(Constants.delay/2);
 
-                        System.out.println("Signal[Provider]:Request");
-                        PhaseVI phaseVI = (PhaseVI) obj_InputP.readObject();
-                        System.out.println("Read[Provider]:"+phaseVI.N);
+                        System.out.println("Signal[Provider]: PhaseIII");
 
-                        response = CheckBoard.checkResponse(phaseIII.N);
+                        EncryptData enc_phaseVI = (EncryptData) obj_InputP.readObject();
+                        PhaseVI phaseVI =  Cryptography.decryptObjectAES(enc_phaseVI,privKey,providerPubKey);
+                        System.out.println("Read[Provider]: {Mask: "+phaseVI.M+"}\n");
+
+                        response = CheckBoard.checkResponse(N,boardPubKey);
                         if(response==null){
                             Thread.sleep(Constants.delay*5);
-                            response = CheckBoard.checkResponse(phaseIII.N);
+                            response = CheckBoard.checkResponse(N,boardPubKey);
                         }
                     }
-
-                    System.out.println("Board: Write Success");
 
                     //User is using service
                     Thread.sleep(1000);
                     //User is using service
 
                     date_now = new Date(System.currentTimeMillis());
-                    TestimonialPartI t_partI = new TestimonialPartI(date_now, phaseIII.R_ks, "comment");
-                    TestimonialPartII t_partII = new TestimonialPartII(date_now, phaseIII.R_ksb, phaseIII.N);
-                    Testimonial testimonial = new Testimonial(t_partI,t_partII);
+                    TestimonialPartI t_partI = new TestimonialPartI(date_now, R_ks, "comment");
+                    TestimonialPartII t_partII = new TestimonialPartII(date_now, R_ksb, N);
+
+                    EncryptData tes_enData1 = Cryptography.encryptObjectAES(t_partI,sharedKey,privKey,providerPubKey);
+                    EncryptData tes_enData2 = Cryptography.encryptObjectAES(t_partII,sharedKey,privKey,boardPubKey);
+
+                    Testimonial testimonial = new Testimonial(tes_enData1,tes_enData2);
 
                     Testimonial testimonial1 =null;
                     while(testimonial1==null){
                         Thread.sleep(Constants.delay/2);
                         obj_WriterB.writeObject(testimonial);
 
-                        testimonial1 = CheckBoard.checkTestimonial(N);
+                        testimonial1 = CheckBoard.checkTestimonial(N,boardPubKey);
                         if(testimonial1==null){
                             Thread.sleep(Constants.delay*5);
-                            testimonial1 = CheckBoard.checkTestimonial(N);
+                            testimonial1 = CheckBoard.checkTestimonial(N,boardPubKey);
                         }
+                        System.out.println("Board: Testimonial Write Success");
                     }
 
-                    PhaseIX phaseIX = new PhaseIX(phaseIII.N,"Comment");
-                    System.out.println("Board: Write Success");
-                    obj_WriterP.writeObject(phaseIX);
+                    PhaseIX phaseIX = new PhaseIX(N,"Comment");
+                    EncryptData enc_phaseIX = Cryptography.encryptObjectAES(phaseIX,sharedKey,privKey,providerPubKey);
+
+                    obj_WriterP.writeObject(enc_phaseIX);
+                    System.out.println("Signal[Provider]:PhaseIX");
 
                 }catch (InterruptedException e) {
                     e.printStackTrace();

@@ -1,9 +1,11 @@
 package Classes.Testimonial;
 
+import Classes.EncryptData;
+
 public class Testimonial implements java.io.Serializable {
-    public TestimonialPartI first;
-    public TestimonialPartII second;
-    public Testimonial(TestimonialPartI partI, TestimonialPartII partII) {
+    public EncryptData first;
+    public EncryptData second;
+    public Testimonial(EncryptData partI, EncryptData partII) {
         this.first=partI;
         this.second=partII;
     }

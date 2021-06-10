@@ -1,10 +1,12 @@
 package Classes.Request;
 
-public class Request implements java.io.Serializable {
-    public RequestPartI first;
-    public RequestPartII second;
+import Classes.EncryptData;
 
-    public Request(RequestPartI partI, RequestPartII partII) {
+public class Request implements java.io.Serializable {
+    public EncryptData first; //RequestPartI
+    public EncryptData second;//RequestPartII
+
+    public Request(EncryptData partI, EncryptData partII) {
         this.first=partI;
         this.second=partII;
     }

@@ -8,11 +8,6 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
 
-/**
- * Utils for (de)serialization into Base64-encoded string for future persisting.
- *
- * @author andy
- */
 public class SerializationUtils {
 
     public static <T extends Serializable> String serialize(T item) {

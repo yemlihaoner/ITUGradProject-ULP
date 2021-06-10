@@ -5,7 +5,7 @@ import java.security.KeyStore;
 import java.security.SecureRandom;
 
 public class SocketUtils {
-    public static SSLContext getCtx(String trustPath, String keyPath) {
+    public static SSLContext getSSLContext(String trustPath, String keyPath) {
         try{
             final char [] storePassword = new char[]{'1','2','3','4','5','6'};
             KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());

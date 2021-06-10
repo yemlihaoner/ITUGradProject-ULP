@@ -1,17 +1,19 @@
 import Classes.Log;
 import Utils.Constants;
 import Utils.SocketUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.net.ssl.*;
 import java.io.*;
+import java.security.Security;
 import java.util.ArrayList;
 
 public class ULPBulletinBoard {
     public static void main(String[] args){
         ArrayList<Log> logs = new ArrayList<Log>();
-     //   ArrayList<LogKeyPair> logKeys = new ArrayList<LogKeyPair>();
         try{
-            SSLContext ctx = SocketUtils.getCtx("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
+            Security.addProvider(new BouncyCastleProvider());
+            SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
             SSLServerSocket serverSocket = SocketUtils.getServerSocket(ctx,6868);
 
             System.out.println("Server is listening on port " + 6868);
@@ -21,7 +23,6 @@ public class ULPBulletinBoard {
                 System.out.println("New client connected");
 
                 new ULPBulletinBoardThread(socket,logs
-                        //,logKeys
                         ).start();
             }
         }catch (IOException | InterruptedException ex) {
