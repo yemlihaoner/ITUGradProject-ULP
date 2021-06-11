@@ -15,11 +15,17 @@ import java.util.Date;
 public class CheckBoard {
 
     private static SubLog getSubLog(String[] split_line) throws ParseException {
-        String s_Log = split_line[2].replaceAll("  ","");
-        String s_N = split_line[1].replaceAll("  ","");
-        String s_Date = split_line[0].replaceAll("  ","");
+        String s_Log = split_line[2];
+        String s_N = split_line[1];
+        String s_Date = split_line[0];
         Date date = Constants.dateFormatter.parse(s_Date);
         return new SubLog(date,s_Log,s_N);
+    }
+    public static Date getDate() throws ParseException {
+        Date date = new Date(System.currentTimeMillis());
+        String date_tmp = Constants.dateFormatter.format(date);
+        date = Constants.dateFormatter.parse(date_tmp);
+        return date;
     }
 
     public static String checkNForRequest(Request req, PublicKey publicKey) throws Exception {
@@ -36,11 +42,9 @@ public class CheckBoard {
             if(line.contains("<td>")){
                 line = line.replace("<td>","");
                 String[] split_line = line.split("</td>");
-                String s_Signed = split_line[3].replaceAll("  ","");
-                String s_Log = split_line[2].replaceAll("  ","");
-                if(SerializationUtils.serialize(req).equals(s_Log)){
-                    SubLog sub_log = getSubLog(split_line);
-                    boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),s_Signed,publicKey);
+                if(SerializationUtils.serialize(req).equals(split_line[2])){
+                    SubLog sub_log =  getSubLog(split_line);
+                    boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),split_line[3],publicKey);
                     if(isVerified)
                         return sub_log.N;
                 }
@@ -63,10 +67,9 @@ public class CheckBoard {
             if(line.contains("<td>")){
                 line = line.replace("<td>","");
                 String[] split_line = line.split("</td>");
-                if(split_line[1].contains(N)){
+                if(split_line[1].equals(N)){
                     SubLog sub_log = getSubLog(split_line);
-                    String s_Signed = split_line[3].replaceAll("  ","");
-                    boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),s_Signed,publicKey);
+                    boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),split_line[3],publicKey);
                     if(isVerified)
                         return SerializationUtils.deserialize(sub_log.object);
                 }
@@ -90,10 +93,10 @@ public class CheckBoard {
             if(line.contains("<td>")){
                 line = line.replace("<td>","");
                 String[] split_line = line.split("</td>");
-                if(split_line[1].contains(N)){
+                if(split_line[1].equals(N)){
                     SubLog sub_log = getSubLog(split_line);
-                    String s_Signed = split_line[3].replaceAll("  ","");
-                    boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),s_Signed,publicKey);
+                    String seri = SerializationUtils.serialize(sub_log);
+                    boolean isVerified = SignatureUtils.verify(seri,split_line[3],publicKey);
                     if(isVerified){
                         Object deserialized = SerializationUtils.deserialize(sub_log.object);
                         if(deserialized instanceof Response){
@@ -121,10 +124,9 @@ public class CheckBoard {
             if(line.contains("<td>")){
                 line = line.replace("<td>","");
                 String[] split_line = line.split("</td>");
-                if(split_line[1].contains(N)){
+                if(split_line[1].equals(N)){
                     SubLog sub_log = getSubLog(split_line);
-                    String s_Signed = split_line[3].replaceAll("  ","");
-                    boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),s_Signed,publicKey);
+                    boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),split_line[3],publicKey);
                     if(isVerified){
                         Object deserialized = SerializationUtils.deserialize(sub_log.object);
                         if(deserialized instanceof Testimonial){

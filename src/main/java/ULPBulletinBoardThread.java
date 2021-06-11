@@ -45,9 +45,11 @@ public class ULPBulletinBoardThread extends Thread{
                 String type = reader.readLine();
                 if(type.equals("User")){
                     obj_Writer.writeObject(pubKey);
-                    userPubKey = (PublicKey)obj_Input.readObject();
-                    Request req = (Request) obj_Input.readObject();
-                    date = new Date(System.currentTimeMillis());
+                    userPubKey = SocketUtils.getInputObject(obj_Input,"PublicKey");
+                    System.out.println("Keys are exchanged");
+
+                    Request req = SocketUtils.getInputObject(obj_Input,"Request");
+                    date = CheckBoard.getDate();
                     String N = UUID.randomUUID().toString();
                     SubLog req_log = new SubLog(date,SerializationUtils.serialize(req),N);
 
@@ -57,11 +59,11 @@ public class ULPBulletinBoardThread extends Thread{
                     updateFile(logs);
 
                     System.out.println("Write[User]: Request");
-                    Testimonial testimonial = (Testimonial) obj_Input.readObject();
+                    Testimonial testimonial = SocketUtils.getInputObject(obj_Input,"Testimonial");
                     TestimonialPartII partII = Cryptography.decryptObjectAES(testimonial.second,privKey,userPubKey);
 
 
-                    date = new Date(System.currentTimeMillis());
+                    date = CheckBoard.getDate();
                     SubLog tes_log = new SubLog(date,SerializationUtils.serialize(testimonial),N);
 
 
@@ -72,23 +74,24 @@ public class ULPBulletinBoardThread extends Thread{
                     System.out.println("Write[User]: Testimonial");
                 }else if (type.equals("Provider")){
                     obj_Writer.writeObject(pubKey);
-                    providerPubKey = (PublicKey)obj_Input.readObject();
+                    providerPubKey = SocketUtils.getInputObject(obj_Input,"PublicKey");
 
-                    Response response = (Response) obj_Input.readObject();
+                    Response response = SocketUtils.getInputObject(obj_Input,"Response");
                     ResponsePartII partII = Cryptography.decryptObjectAES(response.second,privKey,providerPubKey);
 
-                    date = new Date(System.currentTimeMillis());
-
+                    date = CheckBoard.getDate();
                     SubLog res_log = new SubLog(date,SerializationUtils.serialize(response),partII.n);
+                    String seri = SerializationUtils.serialize(res_log);
 
                     logs.add(new Log(
                             res_log.time,res_log.object,res_log.N,
-                            SignatureUtils.sign(SerializationUtils.serialize(res_log),privKey)));
+                            SignatureUtils.sign(seri,privKey)));
                     updateFile(logs);
                     System.out.println("Write[Provider]: Response");
 
                 }
 
+                System.out.println("Operation successful. Socket is closing...");
                 socket.close();
             }catch (IOException ex) {
                 System.out.println("Server exception: " + ex.getMessage());
@@ -104,14 +107,14 @@ public class ULPBulletinBoardThread extends Thread{
         outputFile.println(Constants.html_before);
         for (Log log : logs) {
             String row =
-                    "        <td>" + Constants.dateFormatter.format(log.time) + "</td>" +
-                            "        <td>" + log.N + "</td>" +
-                            "        <td>" + log.object + "</td>" +
-                            "        <td>" + log.content + "</td>";
+                    "<td>" + Constants.dateFormatter.format(log.time) + "</td>" +
+                            "<td>" + log.N + "</td>" +
+                            "<td>" + log.object + "</td>" +
+                            "<td>" + log.content + "</td>";
 
-            outputFile.println("    <tr>");
+            outputFile.println("<tr>");
             outputFile.println(row);
-            outputFile.println("    </tr>");
+            outputFile.println("</tr>");
         }
         outputFile.println(Constants.html_after);
         outputFile.close();

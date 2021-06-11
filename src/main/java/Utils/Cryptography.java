@@ -4,6 +4,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -40,7 +41,7 @@ public class Cryptography {
 
     public static byte[] encryptAES (String plainText, Key key ) throws Exception
     {
-        IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
+        IvParameterSpec iv = new IvParameterSpec(initVector.getBytes(StandardCharsets.UTF_8));
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding","BC");
         cipher.init(Cipher.ENCRYPT_MODE, key,iv);
         return  cipher.doFinal(plainText.getBytes());
@@ -48,7 +49,7 @@ public class Cryptography {
 
     public static String decryptAES (byte[] cipherTextArray, Key key) throws Exception
     {
-        IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
+        IvParameterSpec iv = new IvParameterSpec(initVector.getBytes(StandardCharsets.UTF_8));
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding","BC");
         cipher.init(Cipher.DECRYPT_MODE, key,iv);
         byte[] decryptedTextArray = cipher.doFinal(cipherTextArray);

@@ -51,13 +51,14 @@ public class ULPUser {
                 ObjectInputStream obj_InputP = new ObjectInputStream(inputP);
 
 
-                Date date_now = new Date(System.currentTimeMillis());
+                Date date_now = CheckBoard.getDate();
                 writerB.println("User");
 
                 obj_WriterB.writeObject(pubKey);
-                boardPubKey = (PublicKey)obj_InputB.readObject();
                 obj_WriterP.writeObject(pubKey);
-                providerPubKey = (PublicKey)obj_InputP.readObject();
+                boardPubKey =  SocketUtils.getInputObject(obj_InputB,"PublicKey");
+                providerPubKey =  SocketUtils.getInputObject(obj_InputP,"PublicKey");
+                System.out.println("Keys are exchanged");
 
                 Contract contract = new Contract("testUser","testHost","localhost:6800","Request");
                 String R_ks=UUID.randomUUID().toString();
@@ -73,6 +74,7 @@ public class ULPUser {
                 String N = null;
                 try{
                     while(N==null){
+                        System.out.println("Sending Request to Bulletin board");
                         obj_WriterB.writeObject(request);
                         Thread.sleep(Constants.delay/2);
 
@@ -97,8 +99,8 @@ public class ULPUser {
 
                         System.out.println("Signal[Provider]: PhaseIII");
 
-                        EncryptData enc_phaseVI = (EncryptData) obj_InputP.readObject();
-                        PhaseVI phaseVI =  Cryptography.decryptObjectAES(enc_phaseVI,privKey,providerPubKey);
+                        PhaseVI phaseVI = SocketUtils.getPhaseObject(obj_InputP,"PhaseVI",privKey,providerPubKey);
+
                         System.out.println("Read[Provider]: {Mask: "+phaseVI.M+"}\n");
 
                         response = CheckBoard.checkResponse(N,boardPubKey);
@@ -112,7 +114,7 @@ public class ULPUser {
                     Thread.sleep(1000);
                     //User is using service
 
-                    date_now = new Date(System.currentTimeMillis());
+                    date_now = CheckBoard.getDate();
                     TestimonialPartI t_partI = new TestimonialPartI(date_now, R_ks, "comment");
                     TestimonialPartII t_partII = new TestimonialPartII(date_now, R_ksb, N);
 
@@ -128,7 +130,7 @@ public class ULPUser {
 
                         testimonial1 = CheckBoard.checkTestimonial(N,boardPubKey);
                         if(testimonial1==null){
-                            Thread.sleep(Constants.delay*5);
+                            Thread.sleep(Constants.delay*10);
                             testimonial1 = CheckBoard.checkTestimonial(N,boardPubKey);
                         }
                         System.out.println("Board: Testimonial Write Success");
@@ -153,7 +155,7 @@ public class ULPUser {
                 System.out.println("I/O error: " + ex.getMessage());
             }
 
-
+            System.out.println("Operation successful. Socket is closing...");
             socketBoard.close();
         }
         catch (UnknownHostException ex) {

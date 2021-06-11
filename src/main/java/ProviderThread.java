@@ -55,13 +55,14 @@ public class ProviderThread extends Thread {
 
                 System.out.println("Key are exchanging...");
                 obj_WriterU.writeObject(pubKey);
-                userPubKey = (PublicKey)obj_InputU.readObject();
                 writerB.println("Provider");
                 obj_WriterB.writeObject(pubKey);
-                boardPubKey = (PublicKey)obj_InputB.readObject();
+                userPubKey = SocketUtils.getInputObject(obj_InputU,"PublicKey");
+                boardPubKey = SocketUtils.getInputObject(obj_InputB,"PublicKey");
+                System.out.println("Keys are exchanged");
 
-                EncryptData enc_phaseIII = (EncryptData) obj_InputU.readObject();
-                PhaseIII phaseIII = Cryptography.decryptObjectAES(enc_phaseIII,privKey,userPubKey);
+                PhaseIII phaseIII = SocketUtils.getPhaseObject(obj_InputU,"PhaseIII",privKey,userPubKey);
+
                 Request request;
                 try{
                     request = CheckBoard.checkRequest(phaseIII.N,boardPubKey);
@@ -72,7 +73,7 @@ public class ProviderThread extends Thread {
                     e.printStackTrace();
                 }
 
-                Date date_now = new Date(System.currentTimeMillis());
+                Date date_now = CheckBoard.getDate();
                 String M = UUID.randomUUID().toString();
                 ResponsePartI partI = new ResponsePartI(date_now,phaseIII.R_ks,"a_m");
                 ResponsePartII partII = new ResponsePartII(date_now, phaseIII.R_ksb, M,phaseIII.N);
@@ -82,7 +83,6 @@ public class ProviderThread extends Thread {
 
                 Response resp = new Response(res_enData1,res_enData2);
 
-                String requestB = "Respond";
                 Response response1;
 
                 try{
@@ -91,11 +91,12 @@ public class ProviderThread extends Thread {
                         Thread.sleep(Constants.delay/2);
 
                         obj_WriterB.writeObject(resp);
-                        System.out.println("Write[Provider]:"+requestB);
+                        System.out.println("Write[Provider]: Response");
 
                         response1 = CheckBoard.checkResponse(phaseIII.N,boardPubKey);
                         if(response1==null){
                             Thread.sleep(Constants.delay*5);
+                            response1 = CheckBoard.checkResponse(phaseIII.N,boardPubKey);
                         }
                     }
 
@@ -104,10 +105,9 @@ public class ProviderThread extends Thread {
 
                     obj_WriterU.writeObject(enc_phaseVI);
 
-                    System.out.println("Signal[User]:Respond");
+                    System.out.println("Signal[User]: Response");
 
-                    EncryptData enc_phaseIX = (EncryptData) obj_InputU.readObject();
-                    PhaseIX phaseIX = Cryptography.decryptObjectAES(enc_phaseIX,privKey,userPubKey);
+                    PhaseIX phaseIX = SocketUtils.getPhaseObject(obj_InputU,"PhaseIX",privKey,userPubKey);
 
                     System.out.println("Read[User]: "+phaseIX.N);
                 }catch (InterruptedException e) {
@@ -123,6 +123,7 @@ public class ProviderThread extends Thread {
                 System.out.println("I/O error: " + ex.getMessage());
             }
 
+            System.out.println("Operation successful. Socket is closing...");
             socketProvider.close();
         }catch (IOException ex) {
             System.out.println("Server exception: " + ex.getMessage());

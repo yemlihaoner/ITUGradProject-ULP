@@ -33,9 +33,7 @@ public class SerializationUtils {
 
             objectInputStream.close();
             return obj;
-        } catch (IOException e) {
-            throw new Error(e);
-        } catch (ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e) {
             throw new Error(e);
         }
     }

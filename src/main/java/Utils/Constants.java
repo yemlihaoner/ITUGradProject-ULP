@@ -43,7 +43,6 @@ public class Constants {
             "</body>\n" +
             "</html>";
     public static SimpleDateFormat dateFormatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss");
-    public static SimpleDateFormat dateFormatter_spacefree = new SimpleDateFormat("yyyy-MM-dd'at'HH:mm:ss");
 
     public static final String[] protocols = new String[] {"TLSv1","TLSv1.1","TLSv1.2","TLSv1.3"};
     public static final String[] cipher_suites = new String[] {"TLS_AES_128_GCM_SHA256"};

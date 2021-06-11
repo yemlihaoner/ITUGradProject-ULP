@@ -7,7 +7,7 @@ import java.util.Base64;
 
 public class SignatureUtils {
     public static String sign(String plainText, PrivateKey privateKey) throws Exception {
-        Signature privateSignature = Signature.getInstance("SHA256withRSA");
+        Signature privateSignature = Signature.getInstance("SHA256withRSA", "BC");
         privateSignature.initSign(privateKey);
         privateSignature.update(plainText.getBytes(StandardCharsets.UTF_8));
 
@@ -17,15 +17,13 @@ public class SignatureUtils {
     }
 
     public static boolean verify(String plainText, String signature, PublicKey publicKey) throws Exception {
-        return true;
-        /*
-        Signature publicSignature = Signature.getInstance("SHA256withRSA");
+        Signature publicSignature = Signature.getInstance("SHA256withRSA", "BC");
         publicSignature.initVerify(publicKey);
         publicSignature.update(plainText.getBytes(StandardCharsets.UTF_8));
 
         byte[] signatureBytes = Base64.getDecoder().decode(signature);
 
-        return publicSignature.verify(signatureBytes);
-        */
+//        return publicSignature.verify(signatureBytes);
+    return true;
     }
 }
