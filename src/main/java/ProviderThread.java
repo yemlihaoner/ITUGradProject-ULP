@@ -28,6 +28,7 @@ public class ProviderThread extends Thread {
 
     public void run() {
         try{
+            //Asymmetric RSA keys pubKey and privKey are initialized.
             KeyPair pair = KeyUtils.createKeyForRSA();
             Key sharedKey = KeyUtils.createKeyForAES();
             PublicKey pubKey = pair.getPublic();
@@ -35,29 +36,30 @@ public class ProviderThread extends Thread {
             PublicKey userPubKey;
             PublicKey boardPubKey;
 
+            //Socket read and write variables are prepared.
             InputStream inputU = socketProvider.getInputStream();
             OutputStream outputU = socketProvider.getOutputStream();
-            PrintWriter writerU = new PrintWriter(outputU,true);
-            BufferedReader readerU = new BufferedReader(new InputStreamReader(inputU));
             ObjectOutputStream obj_WriterU = new ObjectOutputStream(outputU);
             ObjectInputStream obj_InputU = new ObjectInputStream(inputU);
 
             try{
+                //Initialize Certificate for socket
                 SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
                 SSLSocket socketBoard = SocketUtils.getClientSocket(ctx,6868);
 
+                //Socket read and write variables are prepared.
                 InputStream inputB = socketBoard.getInputStream();
                 OutputStream outputB = socketBoard.getOutputStream();
                 PrintWriter writerB = new PrintWriter(outputB,true);
-                //BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
                 ObjectOutputStream obj_WriterB = new ObjectOutputStream(outputB);
                 ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
 
                 System.out.println("Key are exchanging...");
                 obj_WriterU.writeObject(pubKey);
+                userPubKey = SocketUtils.getInputObject(obj_InputU,"PublicKey");
                 writerB.println("Provider");
                 obj_WriterB.writeObject(pubKey);
-                userPubKey = SocketUtils.getInputObject(obj_InputU,"PublicKey");
+                obj_WriterB.writeObject(userPubKey);
                 boardPubKey = SocketUtils.getInputObject(obj_InputB,"PublicKey");
 
                 PhaseIII phaseIII = SocketUtils.getPhaseObject(obj_InputU,"PhaseIII",privKey,userPubKey);

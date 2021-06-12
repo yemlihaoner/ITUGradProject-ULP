@@ -1,5 +1,6 @@
 import Classes.Log;
 import Classes.Request.Request;
+import Classes.Request.RequestPartII;
 import Classes.Response.Response;
 import Classes.Response.ResponsePartII;
 import Classes.SubLog;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
 
+//Users and Providers connects to Bulletin Board. Exchanges keys and publishes signed logs.
 public class ULPBulletinBoardThread extends Thread{
         private Socket socket;
         private ArrayList<Log> logs;
@@ -28,14 +30,15 @@ public class ULPBulletinBoardThread extends Thread{
 
         public void run(){
             try{
+                //Asymmetric RSA keys pubKey and privKey are initialized.
                 PublicKey pubKey = pair.getPublic();
                 PrivateKey privKey = pair.getPrivate();
                 PublicKey userPubKey;
                 PublicKey providerPubKey;
 
+                //Socket read and write variables are prepared.
                 InputStream input = socket.getInputStream();
                 OutputStream output = socket.getOutputStream();
-                PrintWriter writer = new PrintWriter(output,true);
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
                 ObjectOutputStream obj_Writer = new ObjectOutputStream(output);
                 ObjectInputStream obj_Input = new ObjectInputStream(input);
@@ -49,6 +52,7 @@ public class ULPBulletinBoardThread extends Thread{
                     System.out.println("Keys are exchanged");
 
                     Request req = SocketUtils.getInputObject(obj_Input,"Request");
+                    RequestPartII req_partII = Cryptography.decryptObjectAES(req.second,privKey,userPubKey);
                     date = CheckBoard.getDate();
                     String N = UUID.randomUUID().toString();
                     SubLog req_log = new SubLog(date,SerializationUtils.serialize(req),N);
@@ -59,14 +63,15 @@ public class ULPBulletinBoardThread extends Thread{
                     updateFile(logs);
 
                     System.out.println("Write[User]: Request");
-                    Testimonial testimonial = SocketUtils.getInputObject(obj_Input,"Testimonial");
-                    TestimonialPartII partII = Cryptography.decryptObjectAES(testimonial.second,privKey,userPubKey);
 
+                    Testimonial testimonial = SocketUtils.getInputObject(obj_Input,"Testimonial");
+                    TestimonialPartII tes_partII = Cryptography.decryptObjectAES(testimonial.second,privKey,userPubKey);
+
+                    if(!CheckBoard.isDateValid(tes_partII.date) || !tes_partII.R_ksb.equals(req_partII.R_ksb))
+                        return;
 
                     date = CheckBoard.getDate();
                     SubLog tes_log = new SubLog(date,SerializationUtils.serialize(testimonial),N);
-
-
                     logs.add(new Log(
                             tes_log.time,tes_log.object,tes_log.N,
                             SignatureUtils.sign(SerializationUtils.serialize(tes_log),privKey)));
@@ -75,17 +80,22 @@ public class ULPBulletinBoardThread extends Thread{
                 }else if (type.equals("Provider")){
                     obj_Writer.writeObject(pubKey);
                     providerPubKey = SocketUtils.getInputObject(obj_Input,"PublicKey");
+                    userPubKey = SocketUtils.getInputObject(obj_Input,"PublicKey");
 
                     Response response = SocketUtils.getInputObject(obj_Input,"Response");
                     ResponsePartII partII = Cryptography.decryptObjectAES(response.second,privKey,providerPubKey);
+                    Request req = CheckBoard.checkRequest(partII.n,pubKey);
+                    RequestPartII req_partII = Cryptography.decryptObjectAES(req.second,privKey,userPubKey);
+
+                    if(!CheckBoard.isDateValid(partII.date) || !partII.R_ksb.equals(req_partII.R_ksb))
+                        return;
 
                     date = CheckBoard.getDate();
                     SubLog res_log = new SubLog(date,SerializationUtils.serialize(response),partII.n);
-                    String seri = SerializationUtils.serialize(res_log);
 
                     logs.add(new Log(
                             res_log.time,res_log.object,res_log.N,
-                            SignatureUtils.sign(seri,privKey)));
+                            SignatureUtils.sign(SerializationUtils.serialize(res_log),privKey)));
                     updateFile(logs);
                     System.out.println("Write[Provider]: Response");
 

@@ -15,11 +15,14 @@ import java.security.*;
 import java.util.Date;
 import java.util.UUID;
 
-public class ULPUser {
-    public static void main(String[] args) {
-
+public class ULPUser extends Thread {
+//public class ULPUser {
+  //  public static void main(String[] args) {
+    public void run() {
         try{
+            //Initialize BouncyCastle
             Security.addProvider(new BouncyCastleProvider());
+            //Asymmetric RSA keys pubKey and privKey are initialized.
             KeyPair pair = KeyUtils.createKeyForRSA();
             Key sharedKey = KeyUtils.createKeyForAES();
             PublicKey pubKey = pair.getPublic();
@@ -27,29 +30,29 @@ public class ULPUser {
             PublicKey boardPubKey;
             PublicKey providerPubKey;
 
+            //Initialize Certificate for socket
             SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
             assert ctx != null;
             SSLSocket socketBoard = SocketUtils.getClientSocket(ctx,6868);
 
+            //Socket read and write variables are prepared.
             InputStream inputB = socketBoard.getInputStream();
             OutputStream outputB = socketBoard.getOutputStream();
             PrintWriter writerB = new PrintWriter(outputB,true);
-            BufferedReader readerB = new BufferedReader(new InputStreamReader(inputB));
             ObjectOutputStream obj_WriterB = new ObjectOutputStream(outputB);
             ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
 
             try{
+                //Initialize Certificate for socket
                 ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
                 assert ctx != null;
                 SSLSocket socketProvider = SocketUtils.getClientSocket(ctx,6800);
 
+                //Socket read and write variables are prepared.
                 InputStream inputP = socketProvider.getInputStream();
                 OutputStream outputP = socketProvider.getOutputStream();
-                PrintWriter writerP = new PrintWriter(outputP,true);
-                BufferedReader readerP = new BufferedReader(new InputStreamReader(inputP));
                 ObjectOutputStream obj_WriterP = new ObjectOutputStream(outputP);
                 ObjectInputStream obj_InputP = new ObjectInputStream(inputP);
-
 
                 Date date_now = CheckBoard.getDate();
                 writerB.println("User");

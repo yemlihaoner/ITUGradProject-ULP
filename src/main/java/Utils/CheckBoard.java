@@ -21,12 +21,20 @@ public class CheckBoard {
         Date date = Constants.dateFormatter.parse(s_Date);
         return new SubLog(date,s_Log,s_N);
     }
+
     public static Date getDate() throws ParseException {
         Date date = new Date(System.currentTimeMillis());
         String date_tmp = Constants.dateFormatter.format(date);
         date = Constants.dateFormatter.parse(date_tmp);
         return date;
     }
+
+    public static boolean isDateValid(Date toCompare) {
+        Date date_now = new Date(System.currentTimeMillis());
+        Date date_minus_5 = new Date(System.currentTimeMillis() - (5 * 60 * 1000));
+        return toCompare.before(date_now) && toCompare.after(date_minus_5);
+    }
+
 
     public static String checkNForRequest(Request req, PublicKey publicKey) throws Exception {
         Thread.sleep(500);
