@@ -97,7 +97,7 @@ public class CheckBoard {
                     SubLog sub_log = getSubLog(split_line);
                     String seri = SerializationUtils.serialize(sub_log);
                     boolean isVerified = SignatureUtils.verify(seri,split_line[3],publicKey);
-                    if(isVerified){
+                   if(isVerified){
                         Object deserialized = SerializationUtils.deserialize(sub_log.object);
                         if(deserialized instanceof Response){
                             return (Response)deserialized;

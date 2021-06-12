@@ -23,7 +23,6 @@ public class SignatureUtils {
 
         byte[] signatureBytes = Base64.getDecoder().decode(signature);
 
-//        return publicSignature.verify(signatureBytes);
-    return true;
+        return publicSignature.verify(signatureBytes);
     }
 }

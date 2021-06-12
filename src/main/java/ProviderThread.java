@@ -59,7 +59,6 @@ public class ProviderThread extends Thread {
                 obj_WriterB.writeObject(pubKey);
                 userPubKey = SocketUtils.getInputObject(obj_InputU,"PublicKey");
                 boardPubKey = SocketUtils.getInputObject(obj_InputB,"PublicKey");
-                System.out.println("Keys are exchanged");
 
                 PhaseIII phaseIII = SocketUtils.getPhaseObject(obj_InputU,"PhaseIII",privKey,userPubKey);
 

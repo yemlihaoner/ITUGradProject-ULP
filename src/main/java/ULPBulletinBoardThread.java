@@ -18,16 +18,16 @@ import java.util.UUID;
 public class ULPBulletinBoardThread extends Thread{
         private Socket socket;
         private ArrayList<Log> logs;
-
-        public ULPBulletinBoardThread(Socket socket, ArrayList<Log> logs
+        private KeyPair pair;
+        public ULPBulletinBoardThread(Socket socket, ArrayList<Log> logs,KeyPair keyPair
         ) {
             this.socket = socket;
             this.logs=logs;
+            this.pair=keyPair;
         }
 
         public void run(){
             try{
-                KeyPair pair = KeyUtils.createKeyForRSA();
                 PublicKey pubKey = pair.getPublic();
                 PrivateKey privKey = pair.getPrivate();
                 PublicKey userPubKey;
