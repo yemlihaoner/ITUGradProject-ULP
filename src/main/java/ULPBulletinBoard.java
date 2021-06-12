@@ -10,11 +10,9 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Security;
-import java.util.ArrayList;
 
 public class ULPBulletinBoard {
     public static void main(String[] args){
-        ArrayList<Log> logs = new ArrayList<Log>();
         try{
             Security.addProvider(new BouncyCastleProvider());
             SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
@@ -27,7 +25,7 @@ public class ULPBulletinBoard {
                 SSLSocket socket = (SSLSocket)serverSocket.accept();
                 System.out.println("New client connected");
 
-                new ULPBulletinBoardThread(socket,logs,pair
+                new ULPBulletinBoardThread(socket,pair
                         ).start();
             }
         }catch (IOException | InterruptedException ex) {

@@ -12,121 +12,125 @@ import java.net.Socket;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
 
 //Users and Providers connects to Bulletin Board. Exchanges keys and publishes signed logs.
-public class ULPBulletinBoardThread extends Thread{
-        private Socket socket;
-        private ArrayList<Log> logs;
-        private KeyPair pair;
-        public ULPBulletinBoardThread(Socket socket, ArrayList<Log> logs,KeyPair keyPair
-        ) {
-            this.socket = socket;
-            this.logs=logs;
-            this.pair=keyPair;
-        }
+public class ULPBulletinBoardThread extends Thread {
+    private Socket socket;
+    private KeyPair pair;
 
-        public void run(){
-            try{
-                //Asymmetric RSA keys pubKey and privKey are initialized.
-                PublicKey pubKey = pair.getPublic();
-                PrivateKey privKey = pair.getPrivate();
-                PublicKey userPubKey;
-                PublicKey providerPubKey;
+    public ULPBulletinBoardThread(Socket socket, KeyPair keyPair
+    ) {
+        this.socket = socket;
+        this.pair = keyPair;
+    }
 
-                //Socket read and write variables are prepared.
-                InputStream input = socket.getInputStream();
-                OutputStream output = socket.getOutputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-                ObjectOutputStream obj_Writer = new ObjectOutputStream(output);
-                ObjectInputStream obj_Input = new ObjectInputStream(input);
+    public void run() {
+        try {
+            //Asymmetric RSA keys pubKey and privKey are initialized.
+            PublicKey pubKey = pair.getPublic();
+            PrivateKey privKey = pair.getPrivate();
+            PublicKey userPubKey;
+            PublicKey providerPubKey;
 
-                Date date;
+            //Socket read and write variables are prepared.
+            InputStream input = socket.getInputStream();
+            OutputStream output = socket.getOutputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+            ObjectOutputStream obj_Writer = new ObjectOutputStream(output);
+            ObjectInputStream obj_Input = new ObjectInputStream(input);
 
-                String type = reader.readLine();
-                if(type.equals("User")){
-                    obj_Writer.writeObject(pubKey);
-                    userPubKey = SocketUtils.getInputObject(obj_Input,"PublicKey");
-                    System.out.println("Keys are exchanged");
+            Date date;
+            Log log;
 
-                    Request req = SocketUtils.getInputObject(obj_Input,"Request");
-                    RequestPartII req_partII = Cryptography.decryptObjectAES(req.second,privKey,userPubKey);
-                    date = CheckBoard.getDate();
-                    String N = UUID.randomUUID().toString();
-                    SubLog req_log = new SubLog(date,SerializationUtils.serialize(req),N);
+            String type = reader.readLine();
+            if (type.equals("User")) {
+                obj_Writer.writeObject(pubKey);
+                userPubKey = SocketUtils.getInputObject(obj_Input, "PublicKey");
+                System.out.println("Keys are exchanged");
 
-                    logs.add(new Log(
-                            req_log.time,req_log.object,req_log.N,
-                            SignatureUtils.sign(SerializationUtils.serialize(req_log),privKey)));
-                    updateFile(logs);
+                Request req = SocketUtils.getInputObject(obj_Input, "Request");
+                RequestPartII req_partII = Cryptography.decryptObjectAES(req.second, privKey, userPubKey);
+                date = CheckBoard.getDate();
+                String N = UUID.randomUUID().toString();
+                SubLog req_log = new SubLog(date, SerializationUtils.serialize(req), N);
 
-                    System.out.println("Write[User]: Request");
+                log=new Log(
+                        req_log.time, req_log.object, req_log.N,
+                        SignatureUtils.sign(SerializationUtils.serialize(req_log), privKey));
+                updateFile(log);
 
-                    Testimonial testimonial = SocketUtils.getInputObject(obj_Input,"Testimonial");
-                    TestimonialPartII tes_partII = Cryptography.decryptObjectAES(testimonial.second,privKey,userPubKey);
+                System.out.println("Write[User]: Request");
 
-                    if(!CheckBoard.isDateValid(tes_partII.date) || !tes_partII.R_ksb.equals(req_partII.R_ksb))
-                        return;
+                Testimonial testimonial = SocketUtils.getInputObject(obj_Input, "Testimonial");
+                TestimonialPartII tes_partII = Cryptography.decryptObjectAES(testimonial.second, privKey, userPubKey);
 
-                    date = CheckBoard.getDate();
-                    SubLog tes_log = new SubLog(date,SerializationUtils.serialize(testimonial),N);
-                    logs.add(new Log(
-                            tes_log.time,tes_log.object,tes_log.N,
-                            SignatureUtils.sign(SerializationUtils.serialize(tes_log),privKey)));
-                    updateFile(logs);
-                    System.out.println("Write[User]: Testimonial");
-                }else if (type.equals("Provider")){
-                    obj_Writer.writeObject(pubKey);
-                    providerPubKey = SocketUtils.getInputObject(obj_Input,"PublicKey");
-                    userPubKey = SocketUtils.getInputObject(obj_Input,"PublicKey");
+                if (!CheckBoard.isDateValid(tes_partII.date) || !tes_partII.R_ksb.equals(req_partII.R_ksb))
+                    return;
 
-                    Response response = SocketUtils.getInputObject(obj_Input,"Response");
-                    ResponsePartII partII = Cryptography.decryptObjectAES(response.second,privKey,providerPubKey);
-                    Request req = CheckBoard.checkRequest(partII.n,pubKey);
-                    RequestPartII req_partII = Cryptography.decryptObjectAES(req.second,privKey,userPubKey);
+                date = CheckBoard.getDate();
+                SubLog tes_log = new SubLog(date, SerializationUtils.serialize(testimonial), N);
+                log=new Log(
+                        tes_log.time, tes_log.object, tes_log.N,
+                        SignatureUtils.sign(SerializationUtils.serialize(tes_log), privKey));
+                updateFile(log);
+                System.out.println("Write[User]: Testimonial");
+            } else if (type.equals("Provider")) {
+                obj_Writer.writeObject(pubKey);
+                providerPubKey = SocketUtils.getInputObject(obj_Input, "PublicKey");
+                userPubKey = SocketUtils.getInputObject(obj_Input, "PublicKey");
 
-                    if(!CheckBoard.isDateValid(partII.date) || !partII.R_ksb.equals(req_partII.R_ksb))
-                        return;
+                Response response = SocketUtils.getInputObject(obj_Input, "Response");
+                ResponsePartII partII = Cryptography.decryptObjectAES(response.second, privKey, providerPubKey);
+                Request req = CheckBoard.checkRequest(partII.n, pubKey);
+                RequestPartII req_partII = Cryptography.decryptObjectAES(req.second, privKey, userPubKey);
 
-                    date = CheckBoard.getDate();
-                    SubLog res_log = new SubLog(date,SerializationUtils.serialize(response),partII.n);
+                if (!CheckBoard.isDateValid(partII.date) || !partII.R_ksb.equals(req_partII.R_ksb))
+                    return;
 
-                    logs.add(new Log(
-                            res_log.time,res_log.object,res_log.N,
-                            SignatureUtils.sign(SerializationUtils.serialize(res_log),privKey)));
-                    updateFile(logs);
-                    System.out.println("Write[Provider]: Response");
+                date = CheckBoard.getDate();
+                SubLog res_log = new SubLog(date, SerializationUtils.serialize(response), partII.n);
 
-                }
-
-                System.out.println("Operation successful. Socket is closing...");
-                socket.close();
-            }catch (IOException ex) {
-                System.out.println("Server exception: " + ex.getMessage());
-                ex.printStackTrace();
-            }catch (Exception e){
-                System.out.println("Exception: " + e.getMessage());
+                log=new Log(
+                        res_log.time, res_log.object, res_log.N,
+                        SignatureUtils.sign(SerializationUtils.serialize(res_log), privKey));
+                updateFile(log);
+                System.out.println("Write[Provider]: Response");
+            } else if (type.equals("Verifier")) {
+                obj_Writer.writeObject(pubKey);
+                System.out.println("Public Key is sent to Verifier");
             }
+            System.out.println("Operation successful. Socket is closing...");
+            socket.close();
+        } catch (IOException ex) {
+            System.out.println("Server exception: " + ex.getMessage());
+            ex.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
         }
+    }
 
-    private void updateFile(ArrayList<Log> logs) throws FileNotFoundException {
-        PrintWriter outputFile = new PrintWriter("./src/main/index.html");
+    private void updateFile(Log log) throws IOException {
+        BufferedReader file = new BufferedReader(new FileReader("./src/main/index.html"));
+        StringBuffer inputBuffer = new StringBuffer();
+        String line;
 
-        outputFile.println(Constants.html_before);
-        for (Log log : logs) {
-            String row =
-                    "<td>" + Constants.dateFormatter.format(log.time) + "</td>" +
-                            "<td>" + log.N + "</td>" +
-                            "<td>" + log.object + "</td>" +
-                            "<td>" + log.content + "</td>";
-
-            outputFile.println("<tr>");
-            outputFile.println(row);
-            outputFile.println("</tr>");
+        while ((line = file.readLine()) != null) {
+            inputBuffer.append(line);
+            inputBuffer.append('\n');
         }
-        outputFile.println(Constants.html_after);
-        outputFile.close();
+        file.close();
+        String inputStr = inputBuffer.toString();
+        int endIndex = inputStr.indexOf("</tr>")+5;
+        String row =
+                "\n<tr>\n<td>" + Constants.dateFormatter.format(log.time) + "</td>" +
+                        "<td>" + log.N + "</td>" +
+                        "<td>" + log.object + "</td>" +
+                        "<td>" + log.content + "</td>\n</tr>";
+        String newFileContent = inputStr.substring(0,endIndex)+row+inputStr.substring(endIndex);
+        FileOutputStream fileOut = new FileOutputStream("./src/main/index.html");
+        fileOut.write(newFileContent.getBytes());
+        fileOut.close();
     }
 }

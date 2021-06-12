@@ -3,6 +3,8 @@ import Classes.Request.Request;
 import Classes.Response.Response;
 import Classes.SubLog;
 import Classes.Testimonial.Testimonial;
+import Classes.VerifierAnswer;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -35,6 +37,27 @@ public class CheckBoard {
         return toCompare.before(date_now) && toCompare.after(date_minus_5);
     }
 
+
+    public static VerifierAnswer checkVerifier(PublicKey publicKey,SubLog subLog) throws Exception {
+        Thread.sleep(500);
+        URL url = new URL("http://localhost:8080");
+        URLConnection con = url.openConnection();
+        InputStream is =con.getInputStream();
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        String line;
+
+        //A line is writen as:
+        //Time  |   Object  |   N   |   Content
+        while (!(line = br.readLine()).startsWith("<td>")) {}
+
+        line = line.replace("<td>","");
+        String[] split_line = line.split("</td>");
+        SubLog sub_log = getSubLog(split_line);
+        if(subLog!=null && subLog.time.equals(sub_log.time))
+            return null;
+        boolean isVerified =SignatureUtils.verify(SerializationUtils.serialize(sub_log),split_line[3],publicKey);
+        return new VerifierAnswer(sub_log,isVerified);
+    }
 
     public static String checkNForRequest(Request req, PublicKey publicKey) throws Exception {
         Thread.sleep(500);
