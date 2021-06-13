@@ -4,7 +4,8 @@ import java.text.SimpleDateFormat;
 
 public class Constants {
     public static final int delay = 1000; // in millis
-
+    public enum Comment {Success, Error, Timeout, NoService}
+    public enum Role {BulletinBoard, Provider, User, Verifier}
     public static String html_before="<!doctype html>\n" +
             "<html lang=\"en\">\n" +
             "\n" +

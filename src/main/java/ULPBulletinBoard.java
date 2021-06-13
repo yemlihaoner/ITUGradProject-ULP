@@ -25,8 +25,7 @@ public class ULPBulletinBoard {
                 SSLSocket socket = (SSLSocket)serverSocket.accept();
                 System.out.println("New client connected");
 
-                new ULPBulletinBoardThread(socket,pair
-                        ).start();
+                new ULPBulletinBoardThread(socket,pair).start();
             }
         }catch (IOException | InterruptedException ex) {
             System.out.println("Server exception: " + ex.getMessage());

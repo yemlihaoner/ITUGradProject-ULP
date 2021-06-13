@@ -1,10 +1,8 @@
 package Utils;
-import Classes.EncryptData;
-import Classes.PhaseIII;
-import Classes.PhaseIX;
-import Classes.PhaseVI;
+import Classes.*;
 import Classes.Request.Request;
 import Classes.Response.Response;
+import Classes.Response.ResponsePartII;
 import Classes.Testimonial.Testimonial;
 
 import javax.net.ssl.*;
@@ -60,7 +58,24 @@ public class SocketUtils {
         return socket;
     }
 
-    public static <T extends Serializable> T getInputObject(ObjectInputStream obj_Input, String objType) throws IOException, ClassNotFoundException {
+    public static <T extends Serializable> T getTestimonialObject(ObjectInputStream obj_Input,ObjectOutputStream obj_out,String N,
+                                                   PrivateKey privKey,PublicKey boardPubKey,PublicKey providerPubKey) throws Exception {
+        Object readObject;
+        boolean isNotFound=true;
+        do {
+            readObject = obj_Input.readObject();
+            if (readObject instanceof Testimonial) {
+                isNotFound = false;
+            }else if(readObject instanceof LostPacket && ((LostPacket) readObject).content.equals("PhaseVI is lost.")){
+                Response response = CheckBoard.checkResponse(N,boardPubKey);
+                ResponsePartII partII = Cryptography.decryptObjectAES(response.second, privKey, providerPubKey);
+                obj_out.writeObject(partII.m);
+            }
+        } while (isNotFound);
+        return (T) readObject;
+    }
+    public static <T extends Serializable> T getInputObject(ObjectInputStream obj_Input, String objType)
+            throws Exception {
         boolean isNotFound=true;
         Object readObject=null;
         switch (objType) {
@@ -80,18 +95,18 @@ public class SocketUtils {
                     }
                 } while (isNotFound);
                 break;
-            case "Testimonial":
-                do {
-                    readObject = obj_Input.readObject();
-                    if (readObject instanceof Testimonial) {
-                        isNotFound = false;
-                    }
-                } while (isNotFound);
-                break;
             case "PublicKey":
                 do {
                     readObject = obj_Input.readObject();
                     if (readObject instanceof PublicKey) {
+                        isNotFound = false;
+                    }
+                } while (isNotFound);
+                break;
+            case "Role":
+                do {
+                    readObject = obj_Input.readObject();
+                    if (readObject instanceof Constants.Role) {
                         isNotFound = false;
                     }
                 } while (isNotFound);
@@ -135,6 +150,15 @@ public class SocketUtils {
                         if (phase instanceof PhaseIX) {
                             isNotFound = false;
                         }
+                    }
+                } while (isNotFound);
+                break;
+            case "M":
+                do {
+                    readObject = obj_Input.readObject();
+                    if (readObject instanceof byte[]) {
+                        phase=readObject;
+                        isNotFound=false;
                     }
                 } while (isNotFound);
                 break;

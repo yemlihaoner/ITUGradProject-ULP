@@ -1,7 +1,4 @@
-import Classes.EncryptData;
-import Classes.PhaseIII;
-import Classes.PhaseIX;
-import Classes.PhaseVI;
+import Classes.*;
 import Classes.Response.Response;
 import Classes.Request.*;
 import Classes.Testimonial.*;
@@ -12,11 +9,18 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.net.UnknownHostException;
 import java.security.*;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class ULPUser extends Thread {
-//public class ULPUser {
+
+    //In order to run phase vi in timeout thread, I needed to use it as global.
+    PhaseVI phaseVI=null;
+
+    //public class ULPUser {
   //  public static void main(String[] args) {
     public void run() {
         try{
@@ -54,13 +58,14 @@ public class ULPUser extends Thread {
                 ObjectOutputStream obj_WriterP = new ObjectOutputStream(outputP);
                 ObjectInputStream obj_InputP = new ObjectInputStream(inputP);
 
-                Date date_now = CheckBoard.getDate();
-                writerB.println("User");
+                Date date_now = FuncUtils.getDate();
+                obj_WriterB.writeObject(Constants.Role.User);
 
                 obj_WriterB.writeObject(pubKey);
                 obj_WriterP.writeObject(pubKey);
                 boardPubKey =  SocketUtils.getInputObject(obj_InputB,"PublicKey");
                 providerPubKey =  SocketUtils.getInputObject(obj_InputP,"PublicKey");
+                obj_WriterB.writeObject(providerPubKey);
                 System.out.println("Keys are exchanged");
 
                 Contract contract = new Contract("testUser","testHost","localhost:6800","Request");
@@ -95,30 +100,72 @@ public class ULPUser extends Thread {
                 EncryptData enc_phaseIII = Cryptography.encryptObjectAES(phaseIII,sharedKey,privKey,providerPubKey);
 
                 Response response  = null;
-                try{
-                    while(response==null){
-                        obj_WriterP.writeObject(enc_phaseIII);
-                        Thread.sleep(Constants.delay/2);
+                byte[] M;
+                try {
+                    try {
+                        TimeOutRunner.runWithTimeout(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    while (phaseVI == null) {
+                                        obj_WriterP.writeObject(enc_phaseIII);
+                                        Thread.sleep(Constants.delay / 2);
 
-                        System.out.println("Signal[Provider]: PhaseIII");
+                                        System.out.println("Signal[Provider]: PhaseIII");
+                                        try {
+                                            TimeOutRunner.runWithTimeout(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    try {
+                                                        phaseVI = SocketUtils.getPhaseObject(obj_InputP, "PhaseVI", privKey, providerPubKey);
+                                                    }
+                                                    catch (InterruptedException e) {
+                                                        System.out.println("Interrupted: "+e.getMessage());
 
-                        PhaseVI phaseVI = SocketUtils.getPhaseObject(obj_InputP,"PhaseVI",privKey,providerPubKey);
+                                                    } catch (Exception e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                }
+                                            }, 15, TimeUnit.SECONDS);
+                                        }
+                                        catch (TimeoutException e) {
+                                            System.out.println("Timeput: "+e.getMessage());
+                                        }
+                                    }                                }
+                                catch (InterruptedException e) {
+                                    System.out.println("Interrupted: "+e.getMessage());
 
-                        System.out.println("Read[Provider]: {Mask: "+phaseVI.M+"}\n");
-
-                        response = CheckBoard.checkResponse(N,boardPubKey);
-                        if(response==null){
-                            Thread.sleep(Constants.delay*5);
-                            response = CheckBoard.checkResponse(N,boardPubKey);
-                        }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }, 65, TimeUnit.SECONDS);
                     }
+                    catch (TimeoutException e) {
+                        System.out.println("Timeput: "+e.getMessage());
+                        response  = CheckBoard.checkResponse(N,boardPubKey);
+                    }
+
+                    //This is the 8. attack&precaution scenario of the protocol
+                    //The PhaseVI is lost but response log is logged in Bulletin Board
+                    //We need to retrieve Mask value directly from the Bulletin Board
+                    if(response!=null){
+                        obj_WriterB.writeObject(new LostPacket("PhaseVI is lost."));
+                        M = SocketUtils.getPhaseObject(obj_InputB, "M", privKey, boardPubKey);
+                    }else{
+                        M = phaseVI.M;
+                    }
+                    System.out.println("Read[Provider]: {Mask: "+ Arrays.toString(M) +"}\n");
+
+
+                    response  = CheckBoard.checkResponse(N,boardPubKey);
 
                     //User is using service
                     Thread.sleep(1000);
                     //User is using service
 
-                    date_now = CheckBoard.getDate();
-                    TestimonialPartI t_partI = new TestimonialPartI(date_now, R_ks, "comment");
+                    date_now = FuncUtils.getDate();
+                    TestimonialPartI t_partI = new TestimonialPartI(date_now, R_ks, M==null?Constants.Comment.Error:Constants.Comment.Success);
                     TestimonialPartII t_partII = new TestimonialPartII(date_now, R_ksb, N);
 
                     EncryptData tes_enData1 = Cryptography.encryptObjectAES(t_partI,sharedKey,privKey,providerPubKey);
@@ -139,7 +186,7 @@ public class ULPUser extends Thread {
                         System.out.println("Board: Testimonial Write Success");
                     }
 
-                    PhaseIX phaseIX = new PhaseIX(N,"Comment");
+                    PhaseIX phaseIX = new PhaseIX(N,M==null?Constants.Comment.Error:Constants.Comment.Success);
                     EncryptData enc_phaseIX = Cryptography.encryptObjectAES(phaseIX,sharedKey,privKey,providerPubKey);
 
                     obj_WriterP.writeObject(enc_phaseIX);

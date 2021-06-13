@@ -27,9 +27,11 @@ public class ULPVerifier extends Thread {
             OutputStream outputB = socketBoard.getOutputStream();
             PrintWriter writerB = new PrintWriter(outputB,true);
             ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
+            ObjectOutputStream obj_outB = new ObjectOutputStream(outputB);
 
+            System.out.println("Bulletin Board is connecting...");
             try{
-                writerB.println("Verifier");
+                obj_outB.writeObject(Constants.Role.Verifier);
                 boardPubKey =  SocketUtils.getInputObject(obj_InputB,"PublicKey");
                 System.out.println("Keys are exchanged");
 
