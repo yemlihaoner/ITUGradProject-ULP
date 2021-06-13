@@ -1,4 +1,5 @@
 import Classes.Log;
+import Classes.PhaseIX;
 import Classes.Request.Request;
 import Classes.Request.RequestPartII;
 import Classes.Response.Response;
@@ -14,6 +15,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 //Users and Providers connects to Bulletin Board. Exchanges keys and publishes signed logs.
 public class ULPBulletinBoardThread extends Thread {
@@ -25,6 +28,9 @@ public class ULPBulletinBoardThread extends Thread {
         this.socket = socket;
         this.pair = keyPair;
     }
+    Testimonial testimonial;
+    boolean isFromProvider=false;
+    boolean isNotEOF=true;
 
     public void run() {
         try {
@@ -63,23 +69,28 @@ public class ULPBulletinBoardThread extends Thread {
 
                 System.out.println("Write[User]: Request");
 
-                Testimonial testimonial = SocketUtils.getTestimonialObject(obj_Input, obj_Writer, N, privKey, pubKey, providerPubKey);
-                TestimonialPartII tes_partII = Cryptography.decryptObjectAES(testimonial.second, privKey, userPubKey);
+                try {
+                    testimonial = SocketUtils.getTestimonialObject(obj_Input, obj_Writer, N, privKey, pubKey, providerPubKey);
+                    TestimonialPartII tes_partII = Cryptography.decryptObjectAES(testimonial.second, privKey, userPubKey);
 
-                if (!FuncUtils.isDateValid(tes_partII.date) || !tes_partII.R_ksb.equals(req_partII.R_ksb))
-                    return;
+                    if (!FuncUtils.isDateValid(tes_partII.date) || !tes_partII.R_ksb.equals(req_partII.R_ksb))
+                        return;
 
-                date = FuncUtils.getDate();
-                SubLog tes_log = new SubLog(date, SerializationUtils.serialize(testimonial), N);
-                log = new Log(
-                        tes_log.time, tes_log.object, tes_log.N,
-                        SignatureUtils.sign(SerializationUtils.serialize(tes_log), privKey));
-                updateFile(log);
-                System.out.println("Write[User]: Testimonial");
+                    date = FuncUtils.getDate();
+                    SubLog tes_log = new SubLog(date, SerializationUtils.serialize(testimonial), N);
+                    log = new Log(
+                            tes_log.time, tes_log.object, tes_log.N,
+                            SignatureUtils.sign(SerializationUtils.serialize(tes_log), privKey));
+                    updateFile(log);
+                    System.out.println("Write[User]: Testimonial");
+                }catch (EOFException e){
+                    System.out.println("Server is closed service");
+                }
+
             }
             else if (type.equals(Constants.Role.Provider)){
 
-                    obj_Writer.writeObject(pubKey);
+                obj_Writer.writeObject(pubKey);
                 providerPubKey = SocketUtils.getInputObject(obj_Input, "PublicKey");
                 userPubKey = SocketUtils.getInputObject(obj_Input, "PublicKey");
 
@@ -99,6 +110,74 @@ public class ULPBulletinBoardThread extends Thread {
                         SignatureUtils.sign(SerializationUtils.serialize(res_log), privKey));
                 updateFile(log);
                 System.out.println("Write[Provider]: Response");
+                try {
+                    TimeOutRunner.runWithTimeout(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                while (testimonial==null && isNotEOF){
+                                    try {
+                                        TimeOutRunner.runWithTimeout(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                try {
+                                                    testimonial = SocketUtils.getInputObject(obj_Input,"Testimonial");
+                                                    isFromProvider=true;
+                                                }
+                                                catch (InterruptedException e) {
+                                                    System.out.println("Interrupted: "+e.getMessage());
+
+                                                }catch (EOFException e) {
+                                                    //EOF for provider testimonial check.
+                                                    isNotEOF=false;
+                                                } catch (Exception e) {
+                                                    //System.out.println("Exception: "+e.getMessage());
+                                                    e.printStackTrace();
+                                                }
+                                            }
+                                        }, 15, TimeUnit.SECONDS);
+                                    }
+                                    catch (TimeoutException e) {
+                                        //Timeout for provider testimonial check.
+                                        System.out.println("Timeput: "+e.getMessage());
+                                        testimonial = CheckBoard.checkTestimonial(partII.n,pubKey);
+                                        isFromProvider=false;
+                                    }
+                                    catch (EOFException e) {
+                                        //Timeout for provider testimonial check.
+                                        System.out.println("Timeput: "+e.getMessage());
+                                        isNotEOF=false;
+                                    }
+                                }
+                            }
+                            catch (InterruptedException e) {
+                                System.out.println("Interrupted: "+e.getMessage());
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }, 2, TimeUnit.MINUTES);
+                }
+                catch (TimeoutException e) {
+                    //Timeout for user.
+                    //Run alternative scenario
+                    System.out.println("Timeput: "+e.getMessage());
+                }
+                if(isFromProvider){
+                    TestimonialPartII tes_partII = Cryptography.decryptObjectAES(testimonial.second, privKey, providerPubKey);
+
+                    if (!FuncUtils.isDateValid(tes_partII.date) || !tes_partII.R_ksb.equals(req_partII.R_ksb))
+                        return;
+
+                    date = FuncUtils.getDate();
+                    SubLog tes_log = new SubLog(date, SerializationUtils.serialize(testimonial), partII.n);
+                    log = new Log(
+                            tes_log.time, tes_log.object, tes_log.N,
+                            SignatureUtils.sign(SerializationUtils.serialize(tes_log), privKey));
+                    updateFile(log);
+                    System.out.println("Write[Provider]: Testimonial");
+                }
             }else if (type.equals(Constants.Role.Verifier)){
                 obj_Writer.writeObject(pubKey);
                 System.out.println("Public Key is sent to Verifier");

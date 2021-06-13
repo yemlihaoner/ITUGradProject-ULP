@@ -11,10 +11,10 @@ import java.security.Security;
 public class ULPTestUserRunner {
     public static void main(String[] args){
         try{
-            for (int i = 0;i<6;i++) {
+            for (int i = 0;i<1;i++) {
                 System.out.println("Running a new user");
-                Thread.sleep(Constants.delay/5);
                 new ULPUser().start();
+                Thread.sleep(Constants.delay/5);
             }
         }catch (InterruptedException ex) {
             System.out.println("Server exception: " + ex.getMessage());

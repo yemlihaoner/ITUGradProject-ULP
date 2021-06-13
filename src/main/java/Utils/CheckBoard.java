@@ -13,26 +13,31 @@ import java.net.URLConnection;
 import java.security.PublicKey;
 
 public class CheckBoard {
-        public static VerifierAnswer checkVerifier(PublicKey publicKey,SubLog subLog) throws Exception {
-        Thread.sleep(500);
-        URL url = new URL("http://localhost:8080");
-        URLConnection con = url.openConnection();
-        InputStream is =con.getInputStream();
-        BufferedReader br = new BufferedReader(new InputStreamReader(is));
-        String line;
+    public static VerifierAnswer checkVerifier(PublicKey publicKey,SubLog subLog) {
+        try {
+            Thread.sleep(500);
+            URL url = new URL("http://localhost:8080");
+            URLConnection con = url.openConnection();
+            InputStream is =con.getInputStream();
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line;
 
-        //A line is writen as:
-        //Time  |   N  |   Object   |   Signature
+            //A line is writen as:
+            //Time  |   N  |   Object   |   Signature
 
             while (!(line = br.readLine()).startsWith("<td>")) {}
 
-        line = line.replace("<td>","");
-        String[] split_line = line.split("</td>");
-        SubLog sub_log = FuncUtils.getSubLog(split_line);
-        if(subLog!=null && subLog.time.equals(sub_log.time))
+            line = line.replace("<td>","");
+            String[] split_line = line.split("</td>");
+            SubLog sub_log = FuncUtils.getSubLog(split_line);
+            if(subLog!=null && subLog.time.equals(sub_log.time))
+                return null;
+            boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),split_line[3],publicKey);
+            return new VerifierAnswer(sub_log,isVerified);
+        }catch (Exception e){
             return null;
-        boolean isVerified = SignatureUtils.verify(SerializationUtils.serialize(sub_log),split_line[3],publicKey);
-        return new VerifierAnswer(sub_log,isVerified);
+        }
+
     }
 
     public static String checkNForRequest(Request req, PublicKey publicKey) throws Exception {

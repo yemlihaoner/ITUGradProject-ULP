@@ -9,7 +9,6 @@ import Classes.Testimonial.Testimonial;
 import Classes.Testimonial.TestimonialPartI;
 import Classes.Testimonial.TestimonialPartII;
 import Utils.*;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -22,16 +21,15 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Date;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 
 public class ProviderThread extends Thread {
-    private final Socket socketProvider;
+    private final Socket socketUser;
 
-    public ProviderThread(Socket socketProvider) {
-        this.socketProvider = socketProvider;
+    public ProviderThread(Socket socketUser) {
+        this.socketUser = socketUser;
     }
 
     public void run() {
@@ -45,10 +43,16 @@ public class ProviderThread extends Thread {
             PublicKey boardPubKey;
 
             //Socket read and write variables are prepared.
-            InputStream inputU = socketProvider.getInputStream();
-            OutputStream outputU = socketProvider.getOutputStream();
+            InputStream inputU = socketUser.getInputStream();
+            OutputStream outputU = socketUser.getOutputStream();
             ObjectOutputStream obj_WriterU = new ObjectOutputStream(outputU);
             ObjectInputStream obj_InputU = new ObjectInputStream(inputU);
+
+            //To check if PhaseIX runs timeout error. If timeout exceeds, runs alternative scenario
+            boolean isTimeout=false;
+            //Flag to test if service is not available for some reason.
+            //if set to true runs alternative scenario.
+            boolean isNoService=false;
 
             try{
                 //Initialize Certificate for socket
@@ -109,8 +113,7 @@ public class ProviderThread extends Thread {
                 Response resp = new Response(res_enData1,res_enData2);
 
                 Response response1;
-                boolean isTimeout=false;
-                boolean isNoService=false;
+
 
                 try{
                     response1 = null;
@@ -161,6 +164,15 @@ public class ProviderThread extends Thread {
                 }
 
                 if(isNoService||isTimeout){
+
+                    //First close user connection to interrupts
+                    PhaseIX phaseIX = new PhaseIX(phaseIII.N,isNoService?Constants.Comment.NoService:Constants.Comment.Timeout);
+                    EncryptData enc_phaseIX = Cryptography.encryptObjectAES(phaseIX,sharedKey,privKey,userPubKey);
+
+                    obj_WriterU.writeObject(enc_phaseIX);
+                    System.out.println("Signal[Provider]:PhaseIX");
+
+                    //Then, publish testimonial into Bulletin board
                     date_now = FuncUtils.getDate();
 
                     TestimonialPartI t_partI = new TestimonialPartI(date_now, phaseIII.R_ks, isNoService?Constants.Comment.NoService:Constants.Comment.Timeout);
@@ -183,12 +195,6 @@ public class ProviderThread extends Thread {
                         }
                         System.out.println("Board: Testimonial Write Success");
                     }
-
-                    PhaseIX phaseIX = new PhaseIX(phaseIII.N,isNoService?Constants.Comment.NoService:Constants.Comment.Timeout);
-                    EncryptData enc_phaseIX = Cryptography.encryptObjectAES(phaseIX,sharedKey,privKey,userPubKey);
-
-                    obj_WriterU.writeObject(enc_phaseIX);
-                    System.out.println("Signal[Provider]:PhaseIX");
                 }
                 socketBoard.close();
             }
@@ -200,7 +206,7 @@ public class ProviderThread extends Thread {
             }
 
             System.out.println("Operation successful. Socket is closing...");
-            socketProvider.close();
+            socketUser.close();
         }catch (IOException ex) {
             System.out.println("Server exception: " + ex.getMessage());
             ex.printStackTrace();

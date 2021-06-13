@@ -95,6 +95,14 @@ public class SocketUtils {
                     }
                 } while (isNotFound);
                 break;
+            case "Testimonial":
+                do {
+                    readObject = obj_Input.readObject();
+                    if (readObject instanceof Testimonial) {
+                        isNotFound = false;
+                    }
+                } while (isNotFound);
+                break;
             case "PublicKey":
                 do {
                     readObject = obj_Input.readObject();

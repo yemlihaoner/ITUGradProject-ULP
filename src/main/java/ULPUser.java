@@ -19,6 +19,7 @@ public class ULPUser extends Thread {
 
     //In order to run phase vi in timeout thread, I needed to use it as global.
     PhaseVI phaseVI=null;
+    boolean isServiceClosed=false;
 
     //public class ULPUser {
   //  public static void main(String[] args) {
@@ -155,14 +156,51 @@ public class ULPUser extends Thread {
                     }else{
                         M = phaseVI.M;
                     }
-                    System.out.println("Read[Provider]: {Mask: "+ Arrays.toString(M) +"}\n");
+                    System.out.println("Read[Provider]: {Mask: "+ Arrays.toString(M) +"}");
 
 
                     response  = CheckBoard.checkResponse(N,boardPubKey);
 
                     //User is using service
-                    Thread.sleep(1000);
+                    //During that time, it also checks for alternative scenario
+                    try {
+                        TimeOutRunner.runWithTimeout(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    PhaseIX phaseIX = SocketUtils.getPhaseObject(obj_InputP,"PhaseIX",privKey,providerPubKey);
+                                    System.out.println("Alternative Scenario run.\n{PhaseIX Comment: "+phaseIX.comment+"}\n");
+                                    isServiceClosed=true;
+                                }
+                                catch (InterruptedException e) {
+                                    System.out.println("Interrupted: "+e.getMessage());
+
+                                } catch (Exception e) {
+                                    System.out.println("Exception: "+e.getMessage());
+                                    //e.printStackTrace();
+                                }
+                            }
+                        }, 5, TimeUnit.SECONDS);
+                    }
+                    catch (TimeoutException e) {
+                        //Timeout for user.
+                        //Run alternative scenario
+                        System.out.println("Timeput: "+e.getMessage());
+                        isServiceClosed=false;
+                    }
+                    catch (Exception e){
+                        System.out.println("Exception: "+e.getMessage());
+                    }
+                    //Thread.sleep(Constants.delay*5);
+
                     //User is using service
+                    if(isServiceClosed){
+                        Thread.sleep(Constants.delay*5);
+                        socketBoard.close();
+                        return;
+                    }
+
+
 
                     date_now = FuncUtils.getDate();
                     TestimonialPartI t_partI = new TestimonialPartI(date_now, R_ks, M==null?Constants.Comment.Error:Constants.Comment.Success);
