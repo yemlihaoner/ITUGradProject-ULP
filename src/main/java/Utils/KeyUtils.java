@@ -1,25 +1,23 @@
 package Utils;
-
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import java.security.*;
 
-
+//Key generations
 public class KeyUtils
 {
-    public static SecretKey createKeyForAES()
-            throws NoSuchAlgorithmException, NoSuchProviderException
+    //Generates a 128bit symmetric AES key with BouncyCastle
+    public static SecretKey createKeyForAES() throws NoSuchAlgorithmException, NoSuchProviderException
     {
         SecureRandom random = new SecureRandom();
-        KeyGenerator generator = KeyGenerator.getInstance("AES");
+        KeyGenerator generator = KeyGenerator.getInstance("AES" ,"BC");
         generator.init(128, random);
 
         return generator.generateKey();
     }
 
-    public static KeyPair createKeyForRSA()
-            throws NoSuchAlgorithmException, NoSuchProviderException
+    //Generates a 2048bit asymmetric RSA key with BouncyCastle
+    public static KeyPair createKeyForRSA() throws NoSuchAlgorithmException, NoSuchProviderException
     {
         SecureRandom random = new SecureRandom();
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", "BC");

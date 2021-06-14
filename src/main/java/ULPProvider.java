@@ -1,19 +1,18 @@
 import Utils.Constants;
 import Utils.SocketUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.security.Security;
 
+//Provider or Host Role is defined as below. It creates a server socket and starts listening.
+//If anyone connects, it runs a thread to run proposed protocol.
 public class ULPProvider {
     public static void main(String[] args){
         try{
             Security.addProvider(new BouncyCastleProvider());
-            SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
-            SSLServerSocket serverSocket = SocketUtils.getServerSocket(ctx,6800);
+            SSLServerSocket serverSocket = SocketUtils.getServerSocket("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks",6800);
 
             System.out.println("Server is listening on port " + 6800);
 

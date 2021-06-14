@@ -1,5 +1,4 @@
 import Classes.Log;
-import Classes.PhaseIX;
 import Classes.Request.Request;
 import Classes.Request.RequestPartII;
 import Classes.Response.Response;
@@ -28,6 +27,7 @@ public class ULPBulletinBoardThread extends Thread {
         this.socket = socket;
         this.pair = keyPair;
     }
+    //Global variables declared here to be used in Runnable code pieces.
     Testimonial testimonial;
     boolean isFromProvider=false;
     boolean isNotEOF=true;
@@ -49,6 +49,7 @@ public class ULPBulletinBoardThread extends Thread {
             Date date;
             Log log;
 
+            //Check who is connected or in what purpose. Check Constants.Role to see details.
             Constants.Role type = SocketUtils.getInputObject(obj_Input, "Role");
             if (type.equals(Constants.Role.User)){
                 obj_Writer.writeObject(pubKey);
@@ -56,12 +57,14 @@ public class ULPBulletinBoardThread extends Thread {
                 providerPubKey = SocketUtils.getInputObject(obj_Input, "PublicKey");
                 System.out.println("Keys are exchanged");
 
+                //Get request object from user
                 Request req = SocketUtils.getInputObject(obj_Input, "Request");
                 RequestPartII req_partII = Cryptography.decryptObjectAES(req.second, privKey, userPubKey);
                 date = FuncUtils.getDate();
                 String N = UUID.randomUUID().toString();
                 SubLog req_log = new SubLog(date, SerializationUtils.serialize(req), N);
 
+                //Construct log with prepared values
                 log = new Log(
                         req_log.time, req_log.object, req_log.N,
                         SignatureUtils.sign(SerializationUtils.serialize(req_log), privKey));
@@ -70,9 +73,12 @@ public class ULPBulletinBoardThread extends Thread {
                 System.out.println("Write[User]: Request");
 
                 try {
+                    //If a testimonial comes from user (main scenario)
+                    //prepare testimonial log as accordingly
                     testimonial = SocketUtils.getTestimonialObject(obj_Input, obj_Writer, N, privKey, pubKey, providerPubKey);
                     TestimonialPartII tes_partII = Cryptography.decryptObjectAES(testimonial.second, privKey, userPubKey);
 
+                    //Check present logs and match values. If they seems consistent continue.
                     if (!FuncUtils.isDateValid(tes_partII.date) || !tes_partII.R_ksb.equals(req_partII.R_ksb))
                         return;
 
@@ -99,71 +105,71 @@ public class ULPBulletinBoardThread extends Thread {
                 Request req = CheckBoard.checkRequest(partII.n, pubKey);
                 RequestPartII req_partII = Cryptography.decryptObjectAES(req.second, privKey, userPubKey);
 
+                //Check present logs and match values. If they seems consistent continue.
                 if (!FuncUtils.isDateValid(partII.date) || !partII.R_ksb.equals(req_partII.R_ksb))
                     return;
 
                 date = FuncUtils.getDate();
                 SubLog res_log = new SubLog(date, SerializationUtils.serialize(response), partII.n);
 
+                //Construct log with prepared values
                 log = new Log(
                         res_log.time, res_log.object, res_log.N,
                         SignatureUtils.sign(SerializationUtils.serialize(res_log), privKey));
                 updateFile(log);
                 System.out.println("Write[Provider]: Response");
-                try {
-                    TimeOutRunner.runWithTimeout(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                while (testimonial==null && isNotEOF){
-                                    try {
-                                        TimeOutRunner.runWithTimeout(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                try {
-                                                    testimonial = SocketUtils.getInputObject(obj_Input,"Testimonial");
-                                                    isFromProvider=true;
-                                                }
-                                                catch (InterruptedException e) {
-                                                    System.out.println("Interrupted: "+e.getMessage());
 
-                                                }catch (EOFException e) {
-                                                    //EOF for provider testimonial check.
-                                                    isNotEOF=false;
-                                                } catch (Exception e) {
-                                                    //System.out.println("Exception: "+e.getMessage());
-                                                    e.printStackTrace();
-                                                }
-                                            }
-                                        }, 15, TimeUnit.SECONDS);
-                                    }
-                                    catch (TimeoutException e) {
-                                        //Timeout for provider testimonial check.
-                                        System.out.println("Timeput: "+e.getMessage());
-                                        testimonial = CheckBoard.checkTestimonial(partII.n,pubKey);
-                                        isFromProvider=false;
-                                    }
-                                    catch (EOFException e) {
-                                        //Timeout for provider testimonial check.
-                                        System.out.println("Timeput: "+e.getMessage());
-                                        isNotEOF=false;
-                                    }
+                //Check if the alternative scenario happens or not
+                try {
+                    TimeOutRunner.runWithTimeout(() -> {
+                        try {
+                            while (testimonial==null && isNotEOF){
+                                try {
+                                    TimeOutRunner.runWithTimeout(() -> {
+                                        try {
+                                            testimonial = SocketUtils.getInputObject(obj_Input,"Testimonial");
+                                            isFromProvider=true;
+                                        }
+                                        catch (InterruptedException e) {
+                                            System.out.println("Interrupted: "+e.getMessage());
+
+                                        }catch (EOFException e) {
+                                            //EOF for provider testimonial check.
+                                            isNotEOF=false;
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }, 15, TimeUnit.SECONDS);
+                                }
+                                catch (TimeoutException e) {
+                                    //Timeout for provider testimonial check.
+                                    System.out.println("Timeout: "+e.getMessage());
+                                    testimonial = CheckBoard.checkTestimonial(partII.n,pubKey);
+                                    isFromProvider=false;
+                                }
+                                catch (EOFException e) {
+                                    //Timeout for provider testimonial check.
+                                    System.out.println("Timeout: "+e.getMessage());
+                                    isNotEOF=false;
                                 }
                             }
-                            catch (InterruptedException e) {
-                                System.out.println("Interrupted: "+e.getMessage());
+                        }
+                        catch (InterruptedException e) {
+                            System.out.println("Interrupted: "+e.getMessage());
 
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }, 2, TimeUnit.MINUTES);
                 }
                 catch (TimeoutException e) {
                     //Timeout for user.
                     //Run alternative scenario
-                    System.out.println("Timeput: "+e.getMessage());
+                    System.out.println("Timeout: "+e.getMessage());
                 }
+
+                //If a testimonial comes from provider (alternative scenario)
+                //prepare testimonial log as accordingly
                 if(isFromProvider){
                     TestimonialPartII tes_partII = Cryptography.decryptObjectAES(testimonial.second, privKey, providerPubKey);
 

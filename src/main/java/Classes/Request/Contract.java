@@ -1,7 +1,5 @@
 package Classes.Request;
 
-import java.util.Date;
-
 public class Contract implements java.io.Serializable {
     public String userID;
     public String hostID;

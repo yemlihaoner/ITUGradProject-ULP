@@ -1,8 +1,6 @@
 import Classes.*;
 import Utils.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.net.UnknownHostException;
@@ -18,14 +16,11 @@ public class ULPVerifier extends Thread {
             SubLog lastSubLog=null;
 
             //Initialize Certificate for socket
-            SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
-            assert ctx != null;
-            SSLSocket socketBoard = SocketUtils.getClientSocket(ctx,6868);
+            SSLSocket socketBoard = SocketUtils.getClientSocket("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks",6868);
 
             //Socket read and write variables are prepared.
             InputStream inputB = socketBoard.getInputStream();
             OutputStream outputB = socketBoard.getOutputStream();
-            PrintWriter writerB = new PrintWriter(outputB,true);
             ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
             ObjectOutputStream obj_outB = new ObjectOutputStream(outputB);
 

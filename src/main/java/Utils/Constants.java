@@ -1,11 +1,22 @@
 package Utils;
-
 import java.text.SimpleDateFormat;
 
+//Constant values that are used by many piece of codes.
 public class Constants {
-    public static final int delay = 1000; // in millis
-    public enum Comment {Success, Error, Timeout, NoService}
-    public enum Role {BulletinBoard, Provider, User, Verifier}
+    public static final int delay = 1000;                       //1 second delay for timeouts or Thread.sleep() in millis
+    public enum Comment {Success, Error, Timeout, NoService}    //Comment types in Testimonial as enum.
+    public enum Role {BulletinBoard, Provider, User, Verifier}  //Role types in BulletinBoard interactions.
+
+    //Date format to print date data on log publishes
+    public static SimpleDateFormat dateFormatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss");
+
+    //Supported protocols by SSL socket
+    public static final String[] protocols = new String[] {"TLSv1","TLSv1.1","TLSv1.2","TLSv1.3"};
+
+    //Supported ciphers by SSL socket
+    public static final String[] cipher_suites = new String[] {"TLS_AES_128_GCM_SHA256"};
+
+    //index.html format before logs
     public static String html_before="<!doctype html>\n" +
             "<html lang=\"en\">\n" +
             "\n" +
@@ -39,12 +50,10 @@ public class Constants {
             "        <th>Log</th>\n" +
             "        <th>Content</th>\n" +
             "    </tr>";
+
+    //index.html format after logs
     public static String html_after="\n" +
             "</table>\n" +
             "</body>\n" +
             "</html>";
-    public static SimpleDateFormat dateFormatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss");
-
-    public static final String[] protocols = new String[] {"TLSv1","TLSv1.1","TLSv1.2","TLSv1.3"};
-    public static final String[] cipher_suites = new String[] {"TLS_AES_128_GCM_SHA256"};
 }

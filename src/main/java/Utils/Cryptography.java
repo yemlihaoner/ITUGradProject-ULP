@@ -9,10 +9,12 @@ import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
+//Cryptographic functions to encrypt-decrypt data or AES keys
 public class Cryptography {
-    private static final String initVector = "encryptionIntVec";
+    private static final String initVector = "encryptionIntVec";    //String to generate IV parameters
     private static final String rsaType = "RSA/ECB/PKCS1Padding";
 
+    //Encrypts an object with AES symmetric key and converts it into an EncryptData object.
     public static <T extends Serializable> EncryptData encryptObjectAES(T part, Key sharedKey, PrivateKey key, PublicKey socketPubKey) throws Exception {
         byte[] esn = Cryptography.encryptAES(SerializationUtils.serialize(part),sharedKey);
         byte[] enca = Cryptography.encryptRSA(sharedKey.getEncoded(),key);
@@ -27,6 +29,7 @@ public class Cryptography {
         return new EncryptData(esn,eepa1,eepa2);
     }
 
+    //Decrypts an encrypted data with AES symmetric key and converts it into original object.
     public static <T extends Serializable> T decryptObjectAES(EncryptData part, PrivateKey key, PublicKey socketPubKey) throws Exception {
         byte[] enca1 = Cryptography.decryptRSA(part.eepa1,key);
         byte[] enca2 = Cryptography.decryptRSA(part.eepa2,key);
@@ -39,6 +42,7 @@ public class Cryptography {
         return SerializationUtils.deserialize(Cryptography.decryptAES(part.esn,sharedKey));
     }
 
+    //Encrypt serialized object
     public static byte[] encryptAES (String plainText, Key key ) throws Exception
     {
         IvParameterSpec iv = new IvParameterSpec(initVector.getBytes(StandardCharsets.UTF_8));
@@ -47,6 +51,7 @@ public class Cryptography {
         return  cipher.doFinal(plainText.getBytes());
     }
 
+    //Decrypt serialized object
     public static String decryptAES (byte[] cipherTextArray, Key key) throws Exception
     {
         IvParameterSpec iv = new IvParameterSpec(initVector.getBytes(StandardCharsets.UTF_8));
@@ -56,6 +61,7 @@ public class Cryptography {
         return new String(decryptedTextArray);
     }
 
+    //Encrypts AES key
     public static byte[] encryptRSA (byte[] textInBytes, Key key) throws Exception
     {
         Cipher cipher = Cipher.getInstance(rsaType,"BC");
@@ -63,6 +69,7 @@ public class Cryptography {
         return cipher.doFinal(textInBytes);
     }
 
+    //Decrypts AES key
     public static byte[] decryptRSA (byte[] cipherTextArray, Key key) throws Exception
     {
         Cipher cipher = Cipher.getInstance(rsaType,"BC");

@@ -1,24 +1,14 @@
 package Utils;
-
-import Classes.SubLog;
-
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.text.ParseException;
 import java.util.*;
 
+//Functional Utilities
 public class FuncUtils {
-    public static SubLog getSubLog(String[] split_line) throws ParseException {
-        String s_Log = split_line[2];
-        String s_N = split_line[1];
-        String s_Date = split_line[0];
-        Date date = Constants.dateFormatter.parse(s_Date);
-        return new SubLog(date,s_Log,s_N);
-    }
-
+    //Gets current date-time
     public static Date getDate() throws ParseException {
         Date date = new Date(System.currentTimeMillis());
         String date_tmp = Constants.dateFormatter.format(date);
@@ -42,7 +32,7 @@ public class FuncUtils {
         return salt;
     }
 
-    //mask salt on Contract
+    //Mask salt on Contract
     public static byte[] hashMask(char[] contract, byte[] mask) {
         PBEKeySpec spec = new PBEKeySpec(contract, mask, 1000, 256);
         Arrays.fill(contract, Character.MIN_VALUE);
@@ -55,6 +45,8 @@ public class FuncUtils {
             spec.clearPassword();
         }
     }
+
+    //XOR operations for Contract and Mask
     public static byte[] xor(byte[] b1, byte[] b2) {
         byte[] oneAndTwo = new byte[Math.min(b1.length, b2.length)];
         for (int i = 0; i < oneAndTwo.length; i++) {
@@ -62,17 +54,4 @@ public class FuncUtils {
         }
         return oneAndTwo;
     }
-
-/*
-    public static BigInteger generateToken(){
-        Random randNum = new Random();
-        byte[] b = new byte[10];
-        randNum.nextBytes(b);
-        // BigInteger type
-        BigInteger bigInt = new BigInteger(b);
-        b=b^b;
-        int token = bigInt;
-        return b;
-    }
-*/
 }

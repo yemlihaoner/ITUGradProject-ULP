@@ -5,7 +5,10 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.util.Base64;
 
+//Signification utilities
 public class SignatureUtils {
+
+    //BulletinBoard calls to sign an object to secure logs
     public static String sign(String plainText, PrivateKey privateKey) throws Exception {
         Signature privateSignature = Signature.getInstance("SHA256withRSA", "BC");
         privateSignature.initSign(privateKey);
@@ -16,6 +19,7 @@ public class SignatureUtils {
         return Base64.getEncoder().encodeToString(signature);
     }
 
+    //Users, Providers or Verifiers verifies logs to check security of logs.
     public static boolean verify(String plainText, String signature, PublicKey publicKey) throws Exception {
         Signature publicSignature = Signature.getInstance("SHA256withRSA", "BC");
         publicSignature.initVerify(publicKey);

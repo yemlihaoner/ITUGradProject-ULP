@@ -1,13 +1,7 @@
 import Utils.Constants;
-import Utils.SocketUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLSocket;
-import java.io.IOException;
-import java.security.Security;
-
+//User role runner is defined as below. It creates as much as needed number of
+//users to test protocol.
 public class ULPTestUserRunner {
     public static void main(String[] args){
         try{

@@ -1,9 +1,9 @@
 package Classes;
 
 public class EncryptData implements java.io.Serializable {
-    public byte[] esn; //esn
-    public byte[] eepa1;//encrypted encrypted shared key
-    public byte[] eepa2;//encrypted encrypted shared key
+    public byte[] esn;          //symmetric encrypted data
+    public byte[] eepa1;        //encrypted encrypted shared key first part
+    public byte[] eepa2;        //encrypted encrypted shared key second part
 
     public EncryptData(byte[] esn, byte[] eepa1, byte[] eepa2) {
         this.esn=esn;

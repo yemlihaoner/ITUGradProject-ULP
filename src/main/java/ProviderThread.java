@@ -9,8 +9,6 @@ import Classes.Testimonial.Testimonial;
 import Classes.Testimonial.TestimonialPartI;
 import Classes.Testimonial.TestimonialPartII;
 import Utils.*;
-
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.net.Socket;
@@ -56,13 +54,11 @@ public class ProviderThread extends Thread {
 
             try{
                 //Initialize Certificate for socket
-                SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
-                SSLSocket socketBoard = SocketUtils.getClientSocket(ctx,6868);
+                SSLSocket socketBoard = SocketUtils.getClientSocket("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks",6868);
 
                 //Socket read and write variables are prepared.
                 InputStream inputB = socketBoard.getInputStream();
                 OutputStream outputB = socketBoard.getOutputStream();
-                PrintWriter writerB = new PrintWriter(outputB,true);
                 ObjectOutputStream obj_WriterB = new ObjectOutputStream(outputB);
                 ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
 
@@ -78,8 +74,8 @@ public class ProviderThread extends Thread {
 
                 PhaseIII phaseIII = SocketUtils.getPhaseObject(obj_InputU,"PhaseIII",privKey,userPubKey);
 
+                //Get request object from published logs
                 Request request=null;
-
                 while(request==null){
                     request = CheckBoard.checkRequest(phaseIII.N,boardPubKey);
                     if(request==null){
@@ -92,18 +88,14 @@ public class ProviderThread extends Thread {
                 RequestPartI requestPartI = Cryptography.decryptObjectAES( request.first, privKey, userPubKey);
                 Date date_now = FuncUtils.getDate();
 
+                //Get A_M value for Response generation
                 byte[] M = FuncUtils.generateMask();    //Mask
                 char[] C = SerializationUtils.serialize(requestPartI.contract).toCharArray();
                 String C_M = SerializationUtils.serialize(FuncUtils.hashMask(C,M));
                 String A = SignatureUtils.sign(C_M,privKey);    //Access Token
                 byte[] A_M = FuncUtils.xor(A.getBytes(StandardCharsets.UTF_8),M);
 
-                /*
-                byte[] A_inBytes = FuncUtils.xor(A_M,M);
-                String A_copy = new String(A_inBytes);
-                boolean verify_A = SignatureUtils.verify(C_M,A_copy,pubKey);
-                */
-
+                //Construct Response with prepared values
                 ResponsePartI partI = new ResponsePartI(date_now,phaseIII.R_ks,A_M);
                 ResponsePartII partII = new ResponsePartII(date_now, phaseIII.R_ksb, M,phaseIII.N);
 
@@ -112,11 +104,9 @@ public class ProviderThread extends Thread {
 
                 Response resp = new Response(res_enData1,res_enData2);
 
-                Response response1;
-
-
+                //Send and check if response is signed and published by Bulletin Board.
+                Response response1 = null;
                 try{
-                    response1 = null;
                     while(response1==null){
                         Thread.sleep(Constants.delay/2);
 
@@ -130,25 +120,25 @@ public class ProviderThread extends Thread {
                         }
                     }
 
+                    //Prepare PhaseVI object
                     PhaseVI phaseVI = new PhaseVI(phaseIII.N,M);
                     EncryptData enc_phaseVI = Cryptography.encryptObjectAES(phaseVI,sharedKey,privKey,userPubKey);
 
+                    //Signal User with phaseVI object
                     obj_WriterU.writeObject(enc_phaseVI);
                     System.out.println("Signal[User]: Response");
                     try {
-                        TimeOutRunner.runWithTimeout(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    PhaseIX phaseIX = SocketUtils.getPhaseObject(obj_InputU,"PhaseIX",privKey,userPubKey);
-                                    System.out.println("Read[User]: "+phaseIX.N);
-                                }
-                                catch (InterruptedException e) {
-                                    System.out.println("Interrupted: "+e.getMessage());
+                        //If isNoService flag is true, timeout is set to 0 minutes, else it is set to 2 minutes
+                        TimeOutRunner.runWithTimeout(() -> {
+                            try {
+                                PhaseIX phaseIX = SocketUtils.getPhaseObject(obj_InputU,"PhaseIX",privKey,userPubKey);
+                                System.out.println("Read[User]: "+phaseIX.N);
+                            }
+                            catch (InterruptedException e) {
+                                System.out.println("Interrupted: "+e.getMessage());
 
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
                         }, isNoService?0:2, TimeUnit.MINUTES);
                     }
@@ -163,6 +153,9 @@ public class ProviderThread extends Thread {
                     e.printStackTrace();
                 }
 
+                //If there is no service or user exceed the timeout duration,
+                //Close users connection by signaling phaseIX and run alternative scenario
+                //where provider sends testimonial to bulletin board.
                 if(isNoService||isTimeout){
 
                     //First close user connection to interrupts
@@ -175,6 +168,7 @@ public class ProviderThread extends Thread {
                     //Then, publish testimonial into Bulletin board
                     date_now = FuncUtils.getDate();
 
+                    //Construct Testimonial with prepared values
                     TestimonialPartI t_partI = new TestimonialPartI(date_now, phaseIII.R_ks, isNoService?Constants.Comment.NoService:Constants.Comment.Timeout);
                     TestimonialPartII t_partII = new TestimonialPartII(date_now, phaseIII.R_ksb, phaseIII.N);
 
@@ -183,6 +177,7 @@ public class ProviderThread extends Thread {
 
                     Testimonial testimonial = new Testimonial(tes_enData1,tes_enData2);
 
+                    //Send and check if testimonial is signed and published by Bulletin Board.
                     Testimonial testimonial1 =null;
                     while(testimonial1==null){
                         Thread.sleep(Constants.delay/2);

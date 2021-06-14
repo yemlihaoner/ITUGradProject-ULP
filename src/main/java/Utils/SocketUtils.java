@@ -4,17 +4,17 @@ import Classes.Request.Request;
 import Classes.Response.Response;
 import Classes.Response.ResponsePartII;
 import Classes.Testimonial.Testimonial;
-
 import javax.net.ssl.*;
 import java.io.*;
-import java.lang.reflect.Type;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.interfaces.RSAPublicKey;
 
+//Socket connection related utilities
 public class SocketUtils {
+
+    //Generates SSlContext from certificate paths.
     public static SSLContext getSSLContext(String trustPath, String keyPath) {
         try{
             final char [] storePassword = new char[]{'1','2','3','4','5','6'};
@@ -44,20 +44,25 @@ public class SocketUtils {
         return null;
     }
 
-    public static SSLSocket getClientSocket(SSLContext ctx, int port) throws IOException {
+    //Generates SSLSocket from paths and port
+    public static SSLSocket getClientSocket(String trustPath, String keyPath,int port) throws IOException {
+        SSLContext ctx = SocketUtils.getSSLContext(trustPath,keyPath);
         SSLSocket socket = (SSLSocket) ctx.getSocketFactory().createSocket("localhost", port);
         socket.setEnabledProtocols(Constants.protocols);
         socket.setEnabledCipherSuites(Constants.cipher_suites);
         return socket;
     }
 
-    public static SSLServerSocket getServerSocket(SSLContext ctx, int port) throws IOException {
+    //Generates SSLServerSocket from paths and port
+    public static SSLServerSocket getServerSocket(String trustPath, String keyPath, int port) throws IOException {
+        SSLContext ctx = SocketUtils.getSSLContext(trustPath,keyPath);
         SSLServerSocket socket = (SSLServerSocket) ctx.getServerSocketFactory().createServerSocket(port);
         socket.setEnabledCipherSuites(Constants.cipher_suites);
         socket.setEnabledProtocols(Constants.protocols);
         return socket;
     }
 
+    //Special Safe ObjectInputStream readObject to check Mask value requests and receives testimonial on socket.
     public static <T extends Serializable> T getTestimonialObject(ObjectInputStream obj_Input,ObjectOutputStream obj_out,String N,
                                                    PrivateKey privKey,PublicKey boardPubKey,PublicKey providerPubKey) throws Exception {
         Object readObject;
@@ -74,6 +79,8 @@ public class SocketUtils {
         } while (isNotFound);
         return (T) readObject;
     }
+
+    //Safe ObjectInputStream readObject to get testimonial on socket.
     public static <T extends Serializable> T getInputObject(ObjectInputStream obj_Input, String objType)
             throws Exception {
         boolean isNotFound=true;
@@ -123,6 +130,7 @@ public class SocketUtils {
         return (T) readObject;
     }
 
+    //Safe ObjectInputStream readObject to get phase objects on socket.
     public static <T extends Serializable> T getPhaseObject(ObjectInputStream obj_Input, String objType, PrivateKey privKey, PublicKey pubKey) throws Exception {
         boolean isNotFound=true;
         Object readObject;
@@ -174,5 +182,4 @@ public class SocketUtils {
 
         return (T) phase;
     }
-
 }

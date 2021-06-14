@@ -1,7 +1,7 @@
 package Utils;
-
 import java.util.concurrent.*;
 
+//Timeout function to create runnable code pieces on ObjectInputStreams.
 public class TimeOutRunner {
         public static void runWithTimeout(final Runnable runnable, long timeout, TimeUnit timeUnit) throws Exception {
             runWithTimeout(new Callable<Object>() {
@@ -16,13 +16,11 @@ public class TimeOutRunner {
         public static <T> T runWithTimeout(Callable<T> callable, long timeout, TimeUnit timeUnit) throws Exception {
             final ExecutorService executor = Executors.newSingleThreadExecutor();
             final Future<T> future = executor.submit(callable);
-            executor.shutdown(); // This does not cancel the already-scheduled task.
+            executor.shutdown();
             try {
                 return future.get(timeout, timeUnit);
             }
             catch (TimeoutException e) {
-                //remove this if you do not want to cancel the job in progress
-                //or set the argument to 'false' if you do not want to interrupt the thread
                 future.cancel(true);
                 throw e;
             }

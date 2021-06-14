@@ -1,5 +1,4 @@
 package Classes.Response;
-
 import java.util.Date;
 
 public class ResponsePartI implements java.io.Serializable {

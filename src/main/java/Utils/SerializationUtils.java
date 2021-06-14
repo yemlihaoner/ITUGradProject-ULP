@@ -8,8 +8,10 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
 
+//Serialization related utilities
 public class SerializationUtils {
 
+    //Serialize an object to generate a string represents the object.
     public static <T extends Serializable> String serialize(T item) {
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutputStream objectOutputStream;
@@ -23,6 +25,7 @@ public class SerializationUtils {
         }
     }
 
+    //Deserialize an string that represents the object to generate original object.
     public static <T extends Serializable> T deserialize(String data) {
         try {
             byte[] dataBytes = Base64.getDecoder().decode(data);

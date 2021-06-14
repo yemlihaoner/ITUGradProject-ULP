@@ -4,7 +4,6 @@ import Classes.Request.*;
 import Classes.Testimonial.*;
 import Utils.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import javax.net.ssl.*;
 import java.io.*;
 import java.net.UnknownHostException;
@@ -21,8 +20,6 @@ public class ULPUser extends Thread {
     PhaseVI phaseVI=null;
     boolean isServiceClosed=false;
 
-    //public class ULPUser {
-  //  public static void main(String[] args) {
     public void run() {
         try{
             //Initialize BouncyCastle
@@ -36,22 +33,17 @@ public class ULPUser extends Thread {
             PublicKey providerPubKey;
 
             //Initialize Certificate for socket
-            SSLContext ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks");
-            assert ctx != null;
-            SSLSocket socketBoard = SocketUtils.getClientSocket(ctx,6868);
+            SSLSocket socketBoard = SocketUtils.getClientSocket("/certs/ulpTrustStore1.jts","/certs/ulpKeyStore1.jks",6868);
 
             //Socket read and write variables are prepared.
             InputStream inputB = socketBoard.getInputStream();
             OutputStream outputB = socketBoard.getOutputStream();
-            PrintWriter writerB = new PrintWriter(outputB,true);
             ObjectOutputStream obj_WriterB = new ObjectOutputStream(outputB);
             ObjectInputStream obj_InputB = new ObjectInputStream(inputB);
 
             try{
                 //Initialize Certificate for socket
-                ctx = SocketUtils.getSSLContext("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks");
-                assert ctx != null;
-                SSLSocket socketProvider = SocketUtils.getClientSocket(ctx,6800);
+                SSLSocket socketProvider = SocketUtils.getClientSocket("/certs/ulpTrustStore2.jts","/certs/ulpKeyStore2.jks",6800);
 
                 //Socket read and write variables are prepared.
                 InputStream inputP = socketProvider.getInputStream();
@@ -143,7 +135,7 @@ public class ULPUser extends Thread {
                         }, 65, TimeUnit.SECONDS);
                     }
                     catch (TimeoutException e) {
-                        System.out.println("Timeput: "+e.getMessage());
+                        System.out.println("Timeout: "+e.getMessage());
                         response  = CheckBoard.checkResponse(N,boardPubKey);
                     }
 
@@ -185,7 +177,6 @@ public class ULPUser extends Thread {
                     catch (TimeoutException e) {
                         //Timeout for user.
                         //Run alternative scenario
-                        System.out.println("Timeput: "+e.getMessage());
                         isServiceClosed=false;
                     }
                     catch (Exception e){
@@ -199,8 +190,6 @@ public class ULPUser extends Thread {
                         socketBoard.close();
                         return;
                     }
-
-
 
                     date_now = FuncUtils.getDate();
                     TestimonialPartI t_partI = new TestimonialPartI(date_now, R_ks, M==null?Constants.Comment.Error:Constants.Comment.Success);
