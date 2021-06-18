@@ -148,8 +148,7 @@ public class ULPBulletinBoardThread extends Thread {
                                     isFromProvider=false;
                                 }
                                 catch (EOFException e) {
-                                    //Timeout for provider testimonial check.
-                                    System.out.println("Timeout: "+e.getMessage());
+                                    //EOF for provider testimonial check.
                                     isNotEOF=false;
                                 }
                             }

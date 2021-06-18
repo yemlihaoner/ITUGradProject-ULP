@@ -1,6 +1,8 @@
 import Classes.*;
 import Classes.Response.Response;
 import Classes.Request.*;
+import Classes.Response.ResponsePartI;
+import Classes.Response.ResponsePartII;
 import Classes.Testimonial.*;
 import Utils.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -122,9 +124,10 @@ public class ULPUser extends Thread {
                                             }, 15, TimeUnit.SECONDS);
                                         }
                                         catch (TimeoutException e) {
-                                            System.out.println("Timeput: "+e.getMessage());
+                                            System.out.println("Timeout: "+e.getMessage());
                                         }
-                                    }                                }
+                                    }
+                                }
                                 catch (InterruptedException e) {
                                     System.out.println("Interrupted: "+e.getMessage());
 
@@ -150,8 +153,11 @@ public class ULPUser extends Thread {
                     }
                     System.out.println("Read[Provider]: {Mask: "+ Arrays.toString(M) +"}");
 
-
+                    //Get response and decrypt object to receive access token
                     response  = CheckBoard.checkResponse(N,boardPubKey);
+                    ResponsePartI res_partI = Cryptography.decryptObjectAES(response.first, privKey, providerPubKey);
+                    byte[] accessToken_A = FuncUtils.xor(res_partI.a_m,M);
+                    String accessToken =  new String(accessToken_A);
 
                     //User is using service
                     //During that time, it also checks for alternative scenario

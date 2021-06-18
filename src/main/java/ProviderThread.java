@@ -145,7 +145,7 @@ public class ProviderThread extends Thread {
                     catch (TimeoutException e) {
                         //Timeout for user.
                         //Run alternative scenario
-                        System.out.println("Timeput: "+e.getMessage());
+                        System.out.println("Timeout: "+e.getMessage());
                         isTimeout = true;
                     }
 
