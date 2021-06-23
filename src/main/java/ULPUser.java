@@ -158,6 +158,13 @@ public class ULPUser extends Thread {
                     ResponsePartI res_partI = Cryptography.decryptObjectAES(response.first, privKey, providerPubKey);
                     byte[] accessToken_A = FuncUtils.xor(res_partI.a_m,M);
                     String accessToken =  new String(accessToken_A);
+                    boolean isNoService = accessToken.equals("NoService");
+                    //System.out.println("Access Token: {"+ accessToken +"}");
+
+
+                    //Flag to test if service is not available for some reason.
+                    //if set to true runs alternative scenario.
+                    boolean noServiceFlag=true;
 
                     //User is using service
                     //During that time, it also checks for alternative scenario
@@ -178,7 +185,7 @@ public class ULPUser extends Thread {
                                     //e.printStackTrace();
                                 }
                             }
-                        }, 5, TimeUnit.SECONDS);
+                        }, noServiceFlag?0:5, TimeUnit.SECONDS);
                     }
                     catch (TimeoutException e) {
                         //Timeout for user.
@@ -190,15 +197,18 @@ public class ULPUser extends Thread {
                     }
                     //Thread.sleep(Constants.delay*5);
 
-                    //User is using service
-                    if(isServiceClosed){
+                    if(isServiceClosed || isNoService){
                         Thread.sleep(Constants.delay*5);
                         socketBoard.close();
                         return;
                     }
 
+
+                    //User is using service
+
                     date_now = FuncUtils.getDate();
-                    TestimonialPartI t_partI = new TestimonialPartI(date_now, R_ks, M==null?Constants.Comment.Error:Constants.Comment.Success);
+                    Constants.Comment comment = noServiceFlag? Constants.Comment.NoService:(M==null?Constants.Comment.Error:Constants.Comment.Success);
+                    TestimonialPartI t_partI = new TestimonialPartI(date_now, R_ks,comment);
                     TestimonialPartII t_partII = new TestimonialPartII(date_now, R_ksb, N);
 
                     EncryptData tes_enData1 = Cryptography.encryptObjectAES(t_partI,sharedKey,privKey,providerPubKey);
@@ -216,8 +226,8 @@ public class ULPUser extends Thread {
                             Thread.sleep(Constants.delay*10);
                             testimonial1 = CheckBoard.checkTestimonial(N,boardPubKey);
                         }
-                        System.out.println("Board: Testimonial Write Success");
                     }
+                    System.out.println("Board: Testimonial Write Success");
 
                     PhaseIX phaseIX = new PhaseIX(N,M==null?Constants.Comment.Error:Constants.Comment.Success);
                     EncryptData enc_phaseIX = Cryptography.encryptObjectAES(phaseIX,sharedKey,privKey,providerPubKey);

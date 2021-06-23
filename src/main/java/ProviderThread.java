@@ -50,7 +50,7 @@ public class ProviderThread extends Thread {
             boolean isTimeout=false;
             //Flag to test if service is not available for some reason.
             //if set to true runs alternative scenario.
-            boolean isNoService=false;
+            boolean noServiceFlag=false;
 
             try{
                 //Initialize Certificate for socket
@@ -92,7 +92,7 @@ public class ProviderThread extends Thread {
                 byte[] M = FuncUtils.generateMask();    //Mask
                 char[] C = SerializationUtils.serialize(requestPartI.contract).toCharArray();
                 String C_M = SerializationUtils.serialize(FuncUtils.hashMask(C,M));
-                String A = SignatureUtils.sign(C_M,privKey);    //Access Token
+                String A = noServiceFlag? "NoService" : SignatureUtils.sign(C_M,privKey);    //Access Token
                 byte[] A_M = FuncUtils.xor(A.getBytes(StandardCharsets.UTF_8),M);
 
                 //Construct Response with prepared values
@@ -140,7 +140,7 @@ public class ProviderThread extends Thread {
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
-                        }, isNoService?0:2, TimeUnit.MINUTES);
+                        }, noServiceFlag?0:2, TimeUnit.MINUTES);
                     }
                     catch (TimeoutException e) {
                         //Timeout for user.
@@ -156,20 +156,12 @@ public class ProviderThread extends Thread {
                 //If there is no service or user exceed the timeout duration,
                 //Close users connection by signaling phaseIX and run alternative scenario
                 //where provider sends testimonial to bulletin board.
-                if(isNoService||isTimeout){
-
-                    //First close user connection to interrupts
-                    PhaseIX phaseIX = new PhaseIX(phaseIII.N,isNoService?Constants.Comment.NoService:Constants.Comment.Timeout);
-                    EncryptData enc_phaseIX = Cryptography.encryptObjectAES(phaseIX,sharedKey,privKey,userPubKey);
-
-                    obj_WriterU.writeObject(enc_phaseIX);
-                    System.out.println("Signal[Provider]:PhaseIX");
-
+                if(noServiceFlag||isTimeout){
                     //Then, publish testimonial into Bulletin board
                     date_now = FuncUtils.getDate();
 
                     //Construct Testimonial with prepared values
-                    TestimonialPartI t_partI = new TestimonialPartI(date_now, phaseIII.R_ks, isNoService?Constants.Comment.NoService:Constants.Comment.Timeout);
+                    TestimonialPartI t_partI = new TestimonialPartI(date_now, phaseIII.R_ks, noServiceFlag?Constants.Comment.NoService:Constants.Comment.Timeout);
                     TestimonialPartII t_partII = new TestimonialPartII(date_now, phaseIII.R_ksb, phaseIII.N);
 
                     EncryptData tes_enData1 = Cryptography.encryptObjectAES(t_partI,sharedKey,privKey,userPubKey);
@@ -190,6 +182,13 @@ public class ProviderThread extends Thread {
                         }
                         System.out.println("Board: Testimonial Write Success");
                     }
+
+                    //First close user connection to interrupts
+                    PhaseIX phaseIX = new PhaseIX(phaseIII.N,noServiceFlag?Constants.Comment.NoService:Constants.Comment.Timeout);
+                    EncryptData enc_phaseIX = Cryptography.encryptObjectAES(phaseIX,sharedKey,privKey,userPubKey);
+
+                    obj_WriterU.writeObject(enc_phaseIX);
+                    System.out.println("Signal[Provider]:PhaseIX");
                 }
                 socketBoard.close();
             }
